@@ -1,0 +1,7 @@
+{
+  "name": "resource-share-frontend",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
