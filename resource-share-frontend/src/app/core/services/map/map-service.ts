@@ -50,9 +50,6 @@ export class MapService {
 
   constructor() {}
 
-  /**
-   * Inicializa un nuevo mapa en el contenedor especificado
-   */
   initMap(config: MapConfig): L.Map | null {
     if (this.maps.has(config.containerId)) {
       console.warn(`Mapa ${config.containerId} ya existe`);
@@ -63,11 +60,10 @@ export class MapService {
       const map = L.map(config.containerId, {
         zoomControl: config.zoomControl ?? true
       }).setView(
-        config.center || [-2.1709979, -79.9223592], // Centro de Guayaquil
+        config.center || [-2.1709979, -79.9223592],
         config.zoom || 13
       );
 
-      // Capa de tiles de OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
@@ -85,16 +81,10 @@ export class MapService {
     }
   }
 
-  /**
-   * Obtiene una instancia de mapa existente
-   */
   getMap(mapId: string): L.Map | null {
     return this.maps.get(mapId) || null;
   }
 
-  /**
-   * Destruye un mapa y limpia recursos
-   */
   destroyMap(mapId: string): void {
     const map = this.maps.get(mapId);
     if (map) {
@@ -106,9 +96,6 @@ export class MapService {
     }
   }
 
-  /**
-   * Agrega un marcador al mapa
-   */
   addMarker(mapId: string, markerId: string, config: MarkerConfig): L.Marker | null {
     const map = this.maps.get(mapId);
     if (!map) {
@@ -127,36 +114,33 @@ export class MapService {
     }
 
     const mapMarkers = this.markers.get(mapId);
-    if (mapMarkers) {
-      mapMarkers.set(markerId, marker);
-    }
+    mapMarkers?.set(markerId, marker);
 
     return marker;
   }
 
-  /**
-   * Actualiza la posición de un marcador existente
-   */
   updateMarkerPosition(mapId: string, markerId: string, coordinates: LocationCoordinates): boolean {
     const mapMarkers = this.markers.get(mapId);
-    const marker = mapMarkers?.get(markerId);
+    if (!mapMarkers) {
+      console.warn(`Mapa ${mapId} no encontrado`);
+      return false;
+    }
 
+    const marker = mapMarkers.get(markerId);
     if (marker) {
       marker.setLatLng([coordinates.latitude, coordinates.longitude]);
       return true;
     }
 
-    console.warn(`Marcador ${markerId} no encontrado en mapa ${mapId}`);
+    console.warn(`Marcador ${markerId} no encontrado`);
     return false;
   }
 
-  /**
-   * Elimina un marcador del mapa
-   */
   removeMarker(mapId: string, markerId: string): boolean {
     const mapMarkers = this.markers.get(mapId);
-    const marker = mapMarkers?.get(markerId);
+    if (!mapMarkers) return false;
 
+    const marker = mapMarkers.get(markerId);
     if (marker) {
       marker.remove();
       mapMarkers.delete(markerId);
@@ -166,9 +150,6 @@ export class MapService {
     return false;
   }
 
-  /**
-   * Elimina todos los marcadores de un mapa
-   */
   clearMarkers(mapId: string): void {
     const mapMarkers = this.markers.get(mapId);
     if (mapMarkers) {
@@ -177,9 +158,6 @@ export class MapService {
     }
   }
 
-  /**
-   * Agrega una línea/ruta entre dos puntos
-   */
   addPolyline(
     mapId: string,
     polylineId: string,
@@ -199,20 +177,16 @@ export class MapService {
     }).addTo(map);
 
     const mapPolylines = this.polylines.get(mapId);
-    if (mapPolylines) {
-      mapPolylines.set(polylineId, polyline);
-    }
+    mapPolylines?.set(polylineId, polyline);
 
     return polyline;
   }
 
-  /**
-   * Elimina una polyline del mapa
-   */
   removePolyline(mapId: string, polylineId: string): boolean {
     const mapPolylines = this.polylines.get(mapId);
-    const polyline = mapPolylines?.get(polylineId);
+    if (!mapPolylines) return false;
 
+    const polyline = mapPolylines.get(polylineId);
     if (polyline) {
       polyline.remove();
       mapPolylines.delete(polylineId);
@@ -222,9 +196,6 @@ export class MapService {
     return false;
   }
 
-  /**
-   * Centra el mapa en una ubicación
-   */
   centerMap(mapId: string, coordinates: LocationCoordinates, zoom?: number): void {
     const map = this.maps.get(mapId);
     if (map) {
@@ -232,9 +203,6 @@ export class MapService {
     }
   }
 
-  /**
-   * Ajusta el mapa para mostrar todos los marcadores
-   */
   fitBounds(mapId: string): void {
     const map = this.maps.get(mapId);
     const mapMarkers = this.markers.get(mapId);
@@ -248,9 +216,6 @@ export class MapService {
     }
   }
 
-  /**
-   * Agrega marcadores para múltiples recursos
-   */
   addResourceMarkers(mapId: string, resources: any[]): void {
     resources.forEach(resource => {
       this.addMarker(mapId, `resource-${resource.id}`, {
@@ -268,9 +233,6 @@ export class MapService {
     this.fitBounds(mapId);
   }
 
-  /**
-   * Dibuja una ruta simple entre origen y destino
-   */
   drawRoute(
     mapId: string,
     from: LocationCoordinates,
@@ -288,9 +250,6 @@ export class MapService {
     );
   }
 
-  /**
-   * Invalida el tamaño del mapa (útil después de cambios de layout)
-   */
   invalidateSize(mapId: string): void {
     const map = this.maps.get(mapId);
     if (map) {
@@ -298,9 +257,6 @@ export class MapService {
     }
   }
 
-  /**
-   * Obtiene los límites visibles del mapa
-   */
   getMapBounds(mapId: string): { north: number; south: number; east: number; west: number } | null {
     const map = this.maps.get(mapId);
     if (map) {
