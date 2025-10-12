@@ -1,1 +1,8 @@
  
+export enum ResourceStatus {
+  AVAILABLE = 'AVAILABLE',
+  CLAIMED = 'CLAIMED',
+  IN_TRANSIT = 'IN_TRANSIT',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED'
+}
