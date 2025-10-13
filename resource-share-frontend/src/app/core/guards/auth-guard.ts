@@ -14,7 +14,6 @@ export const authGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  console.warn('Acceso denegado: usuario no autenticado');
   router.navigate(['/login'], {
     queryParams: { returnUrl: state.url }
   });
