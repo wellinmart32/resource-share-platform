@@ -1,15 +1,15 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth-guard';
+import { UserRole } from './core/enums/user-role.enum';
+import { roleGuard } from './core/guards/role-guard';
 
 export const routes: Routes = [
-  // Ruta principal redirige a login
   {
     path: '',
     redirectTo: '/login',
     pathMatch: 'full',
   },
 
-  // Rutas públicas (sin autenticación)
   {
     path: 'login',
     loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent)
@@ -19,14 +19,38 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/register/register.component').then(m => m.RegisterComponent)
   },
 
-  // Home (requiere autenticación)
   {
     path: 'home',
     loadComponent: () => import('./home/home.page').then(m => m.HomePage),
     canActivate: [authGuard]
   },
 
-  // Wildcard - redirige a login
+  {
+    path: 'donor/publish-resource',
+    loadComponent: () => import('./donor/publish-resource/publish-resource.component').then(m => m.PublishResourceComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { role: UserRole.DONOR }
+  },
+  {
+    path: 'donor/my-donations',
+    loadComponent: () => import('./donor/my-donations/my-donations.component').then(m => m.MyDonationsComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { role: UserRole.DONOR }
+  },
+
+  {
+    path: 'receiver/browse-resources',
+    loadComponent: () => import('./receiver/browse-resources/browse-resources.component').then(m => m.BrowseResourcesComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { role: UserRole.RECEIVER }
+  },
+  {
+    path: 'receiver/my-received',
+    loadComponent: () => import('./receiver/my-received/my-received.component').then(m => m.MyReceivedComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { role: UserRole.RECEIVER }
+  },
+
   {
     path: '**',
     redirectTo: '/login'
