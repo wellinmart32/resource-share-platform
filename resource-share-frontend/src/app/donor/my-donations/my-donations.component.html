@@ -1,3 +1,133 @@
-<p>
-  my-donations works!
-</p>
+<nav class="navbar navbar-light bg-light sticky-top border-bottom">
+  <div class="container-fluid">
+    <button class="btn btn-link text-dark" (click)="goBack()">
+      <i class="bi bi-arrow-left fs-5"></i>
+    </button>
+    <span class="navbar-brand mb-0 h5">Mis Donaciones</span>
+    <button class="btn btn-success btn-sm" (click)="publishNewResource()">
+      <i class="bi bi-plus-circle"></i>
+    </button>
+  </div>
+</nav>
+
+<div class="container py-3">
+
+  <div class="alert alert-danger" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-primary text-white">
+      <h6 class="mb-0">
+        <i class="bi bi-filter me-2"></i>Filtrar por Estado
+      </h6>
+    </div>
+    <div class="card-body">
+      <div class="btn-group w-100 flex-wrap" role="group">
+        <button 
+          *ngFor="let filter of filters"
+          type="button" 
+          [class]="'btn ' + filter.class + (selectedFilter === filter.value ? ' active' : '')"
+          (click)="filterByStatus(filter.value)">
+          {{ filter.label }}
+          <span class="badge bg-secondary ms-1">{{ filter.count }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p class="text-muted mt-2">Cargando donaciones...</p>
+  </div>
+
+  <div *ngIf="!isLoading && filteredResources.length === 0" class="text-center py-5">
+    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+    <h5 class="text-muted mt-3">No hay donaciones</h5>
+    <p class="text-muted">
+      <span *ngIf="selectedFilter === 'ALL'">
+        Aún no has publicado ningún recurso
+      </span>
+      <span *ngIf="selectedFilter !== 'ALL'">
+        No hay donaciones con el estado seleccionado
+      </span>
+    </p>
+    <button class="btn btn-success mt-3" (click)="publishNewResource()">
+      <i class="bi bi-plus-circle me-2"></i>Publicar Primer Recurso
+    </button>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6 col-lg-4" *ngFor="let resource of filteredResources">
+      <div class="card shadow-sm h-100" (click)="viewResourceDetail(resource)" style="cursor: pointer;">
+        <div class="card-body">
+          
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-center">
+              <i [class]="'bi ' + getCategoryIcon(resource.category) + ' text-primary fs-4 me-2'"></i>
+              <div>
+                <h6 class="card-title mb-0">{{ resource.title }}</h6>
+                <small class="text-muted">{{ getCategoryLabel(resource.category) }}</small>
+              </div>
+            </div>
+            <span [class]="'badge ' + getStatusBadgeClass(resource.status)">
+              {{ getStatusText(resource.status) }}
+            </span>
+          </div>
+
+          <p class="card-text text-muted small mb-3">
+            {{ resource.description }}
+          </p>
+
+          <div class="mb-2">
+            <small class="text-muted">
+              <i class="bi bi-geo-alt me-1"></i>
+              {{ resource.address || 'Ubicación registrada' }}
+            </small>
+          </div>
+
+          <div class="mb-2">
+            <small class="text-muted">
+              <i class="bi bi-calendar me-1"></i>
+              Publicado: {{ formatDate(resource.createdAt) }}
+            </small>
+          </div>
+
+          <div *ngIf="resource.receiverName" class="mb-2">
+            <small class="text-success">
+              <i class="bi bi-person-check me-1"></i>
+              Reclamado por: {{ resource.receiverName }}
+            </small>
+          </div>
+
+          <div *ngIf="resource.deliveredAt" class="mb-2">
+            <small class="text-info">
+              <i class="bi bi-check-circle me-1"></i>
+              Entregado: {{ formatDate(resource.deliveredAt) }}
+            </small>
+          </div>
+
+        </div>
+
+        <div class="card-footer bg-light" *ngIf="canCancelResource(resource)">
+          <div class="d-grid">
+            <button 
+              class="btn btn-outline-danger btn-sm"
+              (click)="cancelResource(resource, $event)">
+              <i class="bi bi-x-circle me-1"></i>Cancelar Donación
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-4" *ngIf="!isLoading && filteredResources.length > 0">
+    <button class="btn btn-outline-primary" (click)="publishNewResource()">
+      <i class="bi bi-plus-circle me-2"></i>Publicar Nuevo Recurso
+    </button>
+  </div>
+
+</div>

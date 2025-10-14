@@ -1,3 +1,161 @@
-<p>
-  browse-resources works!
-</p>
+<nav class="navbar navbar-light bg-light sticky-top border-bottom">
+  <div class="container-fluid">
+    <button class="btn btn-link text-dark" (click)="goBack()">
+      <i class="bi bi-arrow-left fs-5"></i>
+    </button>
+    <span class="navbar-brand mb-0 h5">Buscar Recursos</span>
+    <button class="btn btn-primary btn-sm" (click)="getCurrentLocation()" [disabled]="isLoadingLocation">
+      <i class="bi bi-crosshair" [class.spinner-border]="isLoadingLocation"></i>
+    </button>
+  </div>
+</nav>
+
+<div class="container-fluid p-3">
+
+  <div class="alert alert-success" *ngIf="successMessage">
+    <i class="bi bi-check-circle me-2"></i>{{ successMessage }}
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-success text-white">
+      <h6 class="mb-0">
+        <i class="bi bi-geo-alt me-2"></i>Mapa de Recursos
+      </h6>
+    </div>
+    <div class="card-body p-0">
+      <div id="browse-resources-map" style="height: 400px; width: 100%;"></div>
+    </div>
+    <div class="card-footer bg-light">
+      <small class="text-muted">
+        <i class="bi bi-info-circle me-1"></i>
+        <span *ngIf="userLocation">
+          <i class="bi bi-geo-alt-fill text-success me-1"></i>
+          Tu ubicación detectada
+        </span>
+        <span *ngIf="!userLocation">
+          Los recursos se mostrarán en el mapa
+        </span>
+        <span class="ms-3">
+          <i class="bi bi-pin-map-fill text-primary me-1"></i>
+          {{ filteredResources.length }} recursos disponibles
+        </span>
+      </small>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-primary text-white">
+      <h6 class="mb-0">
+        <i class="bi bi-funnel me-2"></i>Filtrar por Categoría
+      </h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-6 col-md-4 col-lg-3" *ngFor="let category of categories">
+          <button 
+            type="button"
+            [class]="'btn w-100 ' + (selectedCategory === category.value ? 'btn-primary' : 'btn-outline-primary')"
+            (click)="filterByCategory(category.value)">
+            <i [class]="'bi ' + category.icon + ' me-1'"></i>
+            {{ category.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p class="text-muted mt-2">Buscando recursos disponibles...</p>
+  </div>
+
+  <div *ngIf="!isLoading && filteredResources.length === 0" class="text-center py-5">
+    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+    <h5 class="text-muted mt-3">No hay recursos disponibles</h5>
+    <p class="text-muted">
+      <span *ngIf="selectedCategory === 'ALL'">
+        No hay recursos publicados en este momento
+      </span>
+      <span *ngIf="selectedCategory !== 'ALL'">
+        No hay recursos en la categoría seleccionada
+      </span>
+    </p>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6 col-lg-4" *ngFor="let resource of filteredResources">
+      <div class="card shadow-sm h-100" (click)="viewResourceDetail(resource)" style="cursor: pointer;">
+        <div class="card-body">
+          
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-center">
+              <i [class]="'bi ' + getCategoryIcon(resource.category) + ' text-primary fs-4 me-2'"></i>
+              <div>
+                <h6 class="card-title mb-0">{{ resource.title }}</h6>
+                <small class="text-muted">{{ getCategoryLabel(resource.category) }}</small>
+              </div>
+            </div>
+            <span class="badge bg-success">Disponible</span>
+          </div>
+
+          <p class="card-text text-muted small mb-3">
+            {{ resource.description }}
+          </p>
+
+          <div class="mb-2">
+            <small class="text-primary">
+              <i class="bi bi-person me-1"></i>
+              {{ resource.donorName }}
+            </small>
+          </div>
+
+          <div class="mb-2">
+            <small class="text-muted">
+              <i class="bi bi-geo-alt me-1"></i>
+              {{ resource.address || 'Ubicación disponible' }}
+            </small>
+          </div>
+
+          <div class="mb-2" *ngIf="resource.distance">
+            <small class="text-success">
+              <i class="bi bi-signpost me-1"></i>
+              A {{ formatDistance(resource.distance) }} de ti
+            </small>
+          </div>
+
+          <div class="mb-2">
+            <small class="text-muted">
+              <i class="bi bi-calendar me-1"></i>
+              {{ formatDate(resource.createdAt) }}
+            </small>
+          </div>
+
+        </div>
+
+        <div class="card-footer bg-light">
+          <div class="d-grid">
+            <button 
+              class="btn btn-success"
+              (click)="claimResource(resource, $event)">
+              <i class="bi bi-hand-thumbs-up me-1"></i>Reclamar Recurso
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-4" *ngIf="!isLoading && filteredResources.length > 0">
+    <p class="text-muted">
+      <i class="bi bi-info-circle me-1"></i>
+      Mostrando {{ filteredResources.length }} recurso(s) disponible(s)
+    </p>
+  </div>
+
+</div>
