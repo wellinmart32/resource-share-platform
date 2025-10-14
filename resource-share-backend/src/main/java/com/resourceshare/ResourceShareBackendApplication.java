@@ -1,4 +1,4 @@
-package com.resourceshare.resource_share_backend;
+package com.resourceshare;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
