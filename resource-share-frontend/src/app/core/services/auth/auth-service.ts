@@ -25,14 +25,15 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.API_URL}/login`, loginRequest)
       .pipe(
         tap(response => {
-          this.saveAuthData(response.jwt, response);
+          // Guardar token en localStorage
+          this.saveAuthData(response.token, response);
           
           const user: User = {
             id: response.userId,
             role: response.role,
             email: response.email,
-            firstName: '',
-            lastName: '',
+            firstName: response.firstName,
+            lastName: response.lastName,
             phone: '',
             active: true
           };
@@ -49,6 +50,22 @@ export class AuthService {
   register(registerRequest: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API_URL}/register`, registerRequest)
       .pipe(
+        tap(response => {
+          // Guardar token en localStorage
+          this.saveAuthData(response.token, response);
+          
+          const user: User = {
+            id: response.userId,
+            role: response.role,
+            email: response.email,
+            firstName: response.firstName,
+            lastName: response.lastName,
+            phone: registerRequest.phone,
+            active: true
+          };
+          
+          this.currentUserSubject.next(user);
+        }),
         catchError(error => {
           console.error('Error en registro:', error);
           return throwError(() => error);

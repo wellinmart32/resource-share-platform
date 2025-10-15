@@ -1,14 +1,11 @@
- 
 import { UserRole } from '../../enums/user-role.enum';
 
-/**
- * Respuesta del backend después de login o registro exitoso
- * El jwt se usará para autenticar todas las peticiones posteriores
- */
 export interface AuthResponse {
-  jwt: string;
+  token: string;
   userId: number;
-  role: UserRole;
   email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
   message?: string;
 }
