@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, throwError } from 'rxjs';
 import { Resource } from '../../models/resource/resource.model';
 import { ResourceRequest } from '../../models/resource/resource-request.model';
-import { ResourceResponse } from '../../models/resource/resource-response.model';
 import { ResourceStatus } from '../../enums/resource-status.enum';
 import { ResourceCategory } from '../../enums/resource-category.enum';
 
@@ -18,8 +17,8 @@ export class ResourceService {
   /**
    * Publicar un nuevo recurso (solo DONOR)
    */
-  publishResource(resourceRequest: ResourceRequest): Observable<ResourceResponse> {
-    return this.http.post<ResourceResponse>(`${this.API_URL}`, resourceRequest)
+  publishResource(resourceRequest: ResourceRequest): Observable<Resource> {
+    return this.http.post<Resource>(`${this.API_URL}`, resourceRequest)
       .pipe(
         tap(response => {
           console.log('Recurso publicado:', response.id);
@@ -104,10 +103,10 @@ export class ResourceService {
    * El recurso cambia a status CLAIMED y desaparece de la lista para otros
    */
   claimResource(resourceId: number): Observable<Resource> {
-    return this.http.post<Resource>(`${this.API_URL}/${resourceId}/claim`, {})
+    return this.http.post<Resource>(`${this.API_URL}/${resourceId}/claim`, null)
       .pipe(
-        tap(resource => {
-          console.log('Recurso reclamado:', resource.id);
+        tap(response => {
+          console.log('Recurso reclamado:', response.id);
         }),
         catchError(error => {
           console.error('Error reclamando recurso:', error);
@@ -117,105 +116,19 @@ export class ResourceService {
   }
 
   /**
-   * Marcar que el RECEIVER está en camino
-   * Cambia status a IN_TRANSIT
-   */
-  markInTransit(resourceId: number): Observable<Resource> {
-    return this.http.patch<Resource>(`${this.API_URL}/${resourceId}/in-transit`, {})
-      .pipe(
-        tap(resource => {
-          console.log('Recurso en tránsito:', resource.id);
-        }),
-        catchError(error => {
-          console.error('Error marcando en tránsito:', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  /**
-   * Confirmar entrega del recurso
-   * Cambia status a DELIVERED, finaliza la transacción
+   * Confirmar la entrega de un recurso (solo RECEIVER)
+   * El recurso cambia a status DELIVERED
    */
   confirmDelivery(resourceId: number): Observable<Resource> {
-    return this.http.patch<Resource>(`${this.API_URL}/${resourceId}/deliver`, {})
+    return this.http.post<Resource>(`${this.API_URL}/${resourceId}/confirm-delivery`, null)
       .pipe(
-        tap(resource => {
-          console.log('Recurso entregado:', resource.id);
+        tap(response => {
+          console.log('Entrega confirmada:', response.id);
         }),
         catchError(error => {
           console.error('Error confirmando entrega:', error);
           return throwError(() => error);
         })
       );
-  }
-
-  /**
-   * Cancelar un recurso (DONOR o RECEIVER)
-   * Cambia status a CANCELLED
-   */
-  cancelResource(resourceId: number): Observable<Resource> {
-    return this.http.patch<Resource>(`${this.API_URL}/${resourceId}/cancel`, {})
-      .pipe(
-        tap(resource => {
-          console.log('Recurso cancelado:', resource.id);
-        }),
-        catchError(error => {
-          console.error('Error cancelando recurso:', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  /**
-   * Actualizar información de un recurso (solo DONOR antes de ser reclamado)
-   */
-  updateResource(resourceId: number, resourceRequest: ResourceRequest): Observable<Resource> {
-    return this.http.put<Resource>(`${this.API_URL}/${resourceId}`, resourceRequest)
-      .pipe(
-        tap(resource => {
-          console.log('Recurso actualizado:', resource.id);
-        }),
-        catchError(error => {
-          console.error('Error actualizando recurso:', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  /**
-   * Eliminar un recurso (solo DONOR antes de ser reclamado)
-   */
-  deleteResource(resourceId: number): Observable<void> {
-    return this.http.delete<void>(`${this.API_URL}/${resourceId}`)
-      .pipe(
-        tap(() => {
-          console.log('Recurso eliminado:', resourceId);
-        }),
-        catchError(error => {
-          console.error('Error eliminando recurso:', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  /**
-   * Buscar recursos cercanos por ubicación
-   * radius en kilómetros
-   */
-  searchNearbyResources(latitude: number, longitude: number, radius: number = 10): Observable<Resource[]> {
-    return this.http.get<Resource[]>(`${this.API_URL}/nearby`, {
-      params: {
-        latitude: latitude.toString(),
-        longitude: longitude.toString(),
-        radius: radius.toString()
-      }
-    })
-    .pipe(
-      catchError(error => {
-        console.error('Error buscando recursos cercanos:', error);
-        return throwError(() => error);
-      })
-    );
   }
 }
