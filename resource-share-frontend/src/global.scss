@@ -1,12 +1,6 @@
 /*
  * App Global CSS
  * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
  */
 
 /* Importar Bootstrap y dependencias */
@@ -24,20 +18,295 @@
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-/* Optional CSS utils that can be commented out */
+/* Optional CSS utils */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+/* Ionic Dark Mode */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+/* ============================================
+   ESTILOS PERSONALIZADOS - COMPARTIR SOLIDARIO
+   ============================================ */
+
+/* Variables de colores */
+:root {
+  --primary-color: #4A90E2;
+  --primary-dark: #357ABD;
+  --success-color: #52C41A;
+  --danger-color: #FF4D4F;
+  --warning-color: #FFA940;
+  --background-light: #F7F9FC;
+  --background-white: #FFFFFF;
+  --text-dark: #2C3E50;
+  --text-muted: #6C757D;
+  --border-light: #E8ECF1;
+}
+
+/* Fondo general de la app */
+ion-content {
+  --background: var(--background-light) !important;
+}
+
+/* Toolbar personalizado */
+ion-toolbar {
+  --background: var(--primary-color);
+  --color: white;
+}
+
+ion-back-button {
+  --color: white;
+}
+
+ion-title {
+  color: white;
+}
+
+/* Cards con bordes redondeados */
+.card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Inputs con estilo personalizado */
+.form-control,
+.form-select {
+  border-radius: 8px;
+  border-color: var(--border-light);
+  padding: 12px 16px;
+  font-size: 1rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+}
+
+.form-control-lg {
+  padding: 14px 18px;
+  font-size: 1.1rem;
+}
+
+/* Labels */
+.form-label {
+  color: var(--text-dark);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+/* Botones primarios */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Botones success */
+.btn-success {
+  background: var(--success-color);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-success:hover {
+  background: #45a817;
+}
+
+/* Botones outline */
+.btn-outline-primary {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  border-width: 2px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-outline-primary:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-outline-success {
+  border-color: var(--success-color);
+  color: var(--success-color);
+  border-width: 2px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-outline-success:hover {
+  background: var(--success-color);
+  border-color: var(--success-color);
+}
+
+/* Botones de radio personalizados (selector de rol) */
+.btn-check:checked + .btn-outline-primary {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.btn-check:checked + .btn-outline-success {
+  background: var(--success-color);
+  border-color: var(--success-color);
+  color: white;
+}
+
+/* Alertas personalizadas */
+.alert-danger {
+  background: #FFF1F0;
+  border: 1px solid #FFCCC7;
+  color: var(--text-dark);
+  border-radius: 8px;
+}
+
+.alert-success {
+  background: #F6FFED;
+  border: 1px solid #B7EB8F;
+  color: var(--text-dark);
+  border-radius: 8px;
+}
+
+.alert-info {
+  background: #E6F4FF;
+  border: 1px solid #91CAFF;
+  color: var(--text-dark);
+  border-radius: 8px;
+}
+
+.alert-warning {
+  background: #FFF7E6;
+  border: 1px solid #FFD591;
+  color: var(--text-dark);
+  border-radius: 8px;
+}
+
+/* Badges */
+.badge {
+  padding: 6px 12px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* Text colors */
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+.text-success {
+  color: var(--success-color) !important;
+}
+
+.text-danger {
+  color: var(--danger-color) !important;
+}
+
+.text-dark {
+  color: var(--text-dark) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Icon colors */
+.icon-primary {
+  color: var(--primary-color);
+}
+
+.icon-success {
+  color: var(--success-color);
+}
+
+.icon-danger {
+  color: var(--danger-color);
+}
+
+/* Avatar circles */
+.avatar-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Role selector cards */
+.role-card {
+  border-radius: 10px;
+  border-width: 2px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.role-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Input groups */
+.input-group .btn {
+  border-radius: 0 8px 8px 0;
+  border-color: var(--border-light);
+}
+
+.input-group .form-control {
+  border-radius: 8px 0 0 8px;
+}
+
+/* Spacing utilities */
+.container-auth {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Shadow utilities */
+.shadow-soft {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .container-auth {
+    padding: 15px;
+  }
+  
+  .form-control-lg {
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+  
+  .btn-lg {
+    padding: 12px 20px;
+  }
+}
+
+/* Remove Ionic dark mode conflicts */
+body {
+  --ion-background-color: var(--background-light);
+  --ion-text-color: var(--text-dark);
+}

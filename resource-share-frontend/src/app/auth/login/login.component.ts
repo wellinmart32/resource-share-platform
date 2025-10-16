@@ -33,18 +33,16 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Si ya está autenticado, redirigir
     if (this.authService.isAuthenticated()) {
       this.router.navigate(['/home']);
       return;
     }
 
-    // Obtener URL de retorno si existe
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
   }
 
   /**
-   * Procesa el login
+   * Procesa el inicio de sesión
    */
   onSubmit() {
     if (this.loginForm.invalid) {
@@ -64,15 +62,7 @@ export class LoginComponent implements OnInit {
       next: (response) => {
         console.log('Login exitoso');
         this.isLoading = false;
-        
-        // Redirigir según el rol
-        if (this.authService.isDonor()) {
-          this.router.navigate(['/donor-dashboard']);
-        } else if (this.authService.isReceiver()) {
-          this.router.navigate(['/receiver-dashboard']);
-        } else {
-          this.router.navigate([this.returnUrl]);
-        }
+        this.router.navigate(['/home']);
       },
       error: (error) => {
         console.error('Error en login:', error);
@@ -89,23 +79,14 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  /**
-   * Alterna visibilidad de la contraseña
-   */
   togglePasswordVisibility() {
     this.showPassword = !this.showPassword;
   }
 
-  /**
-   * Navega a la página de registro
-   */
   goToRegister() {
     this.router.navigate(['/register']);
   }
 
-  /**
-   * Marca todos los campos como touched para mostrar errores
-   */
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
@@ -113,9 +94,6 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  /**
-   * Verifica si un campo tiene error y fue tocado
-   */
   hasError(field: string, error: string): boolean {
     const control = this.loginForm.get(field);
     return !!(control?.hasError(error) && control?.touched);

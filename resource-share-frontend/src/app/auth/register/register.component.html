@@ -1,5 +1,5 @@
 <ion-header>
-  <ion-toolbar color="primary">
+  <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/login"></ion-back-button>
     </ion-buttons>
@@ -7,167 +7,216 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <div class="register-container">
+<ion-content>
+  <div class="container-auth py-4">
     
+    <!-- Encabezado -->
     <div class="text-center mb-4">
-      <h1>Crear Cuenta</h1>
-      <p class="text-muted">Únete a CompartirRecursos</p>
+      <div class="avatar-circle mb-3 mx-auto">
+        <i class="bi bi-person-plus-fill text-white fs-1"></i>
+      </div>
+      <h2 class="fw-bold text-dark">Crear Cuenta</h2>
+      <p class="text-muted">Únete a Compartir Solidario</p>
     </div>
 
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-      
-      <!-- Selector de Rol -->
-      <ion-list>
-        <ion-radio-group formControlName="role">
-          <ion-list-header>
-            <ion-label>¿Qué deseas hacer?</ion-label>
-          </ion-list-header>
+    <!-- Formulario -->
+    <div class="card shadow-soft">
+      <div class="card-body p-4">
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
           
-          <ion-item *ngFor="let role of roles">
-            <ion-radio [value]="role.value" slot="start"></ion-radio>
-            <ion-label>{{ role.label }}</ion-label>
-          </ion-item>
-        </ion-radio-group>
-      </ion-list>
+          <!-- Selector de Rol -->
+          <div class="mb-4">
+            <label class="form-label fw-bold d-flex align-items-center text-dark">
+              <i class="bi bi-question-circle-fill me-2 icon-primary"></i>
+              ¿Qué deseas hacer?
+            </label>
+            <div class="row g-2">
+              <div class="col-6">
+                <input 
+                  class="btn-check" 
+                  type="radio" 
+                  formControlName="role" 
+                  [value]="roles[0].value" 
+                  id="roleDonor">
+                <label class="btn btn-outline-success w-100 role-card" for="roleDonor">
+                  <i class="bi bi-gift d-block fs-4 mb-1"></i>
+                  <small class="d-block">Donante</small>
+                </label>
+              </div>
+              <div class="col-6">
+                <input 
+                  class="btn-check" 
+                  type="radio" 
+                  formControlName="role" 
+                  [value]="roles[1].value" 
+                  id="roleReceiver">
+                <label class="btn btn-outline-primary w-100 role-card" for="roleReceiver">
+                  <i class="bi bi-hand-thumbs-up d-block fs-4 mb-1"></i>
+                  <small class="d-block">Receptor</small>
+                </label>
+              </div>
+            </div>
+          </div>
 
-      <!-- Nombre -->
-      <ion-item class="mt-3">
-        <ion-label position="floating">Nombre</ion-label>
-        <ion-input 
-          type="text" 
-          formControlName="firstName"
-          placeholder="Tu nombre">
-        </ion-input>
-      </ion-item>
-      <ion-text color="danger" *ngIf="hasError('firstName', 'required')">
-        <small>El nombre es requerido</small>
-      </ion-text>
+          <!-- Nombre -->
+          <div class="mb-3">
+            <label for="firstName" class="form-label">Nombre</label>
+            <input 
+              type="text" 
+              class="form-control form-control-lg" 
+              id="firstName"
+              formControlName="firstName">
+            <div class="text-danger small mt-1" *ngIf="hasError('firstName', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>El nombre es requerido
+            </div>
+          </div>
 
-      <!-- Apellido -->
-      <ion-item class="mt-2">
-        <ion-label position="floating">Apellido</ion-label>
-        <ion-input 
-          type="text" 
-          formControlName="lastName"
-          placeholder="Tu apellido">
-        </ion-input>
-      </ion-item>
-      <ion-text color="danger" *ngIf="hasError('lastName', 'required')">
-        <small>El apellido es requerido</small>
-      </ion-text>
+          <!-- Apellido -->
+          <div class="mb-3">
+            <label for="lastName" class="form-label">Apellido</label>
+            <input 
+              type="text" 
+              class="form-control form-control-lg" 
+              id="lastName"
+              formControlName="lastName">
+            <div class="text-danger small mt-1" *ngIf="hasError('lastName', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>El apellido es requerido
+            </div>
+          </div>
 
-      <!-- Email -->
-      <ion-item class="mt-2">
-        <ion-label position="floating">Email</ion-label>
-        <ion-input 
-          type="email" 
-          formControlName="email"
-          placeholder="ejemplo@correo.com">
-        </ion-input>
-      </ion-item>
-      <ion-text color="danger" *ngIf="hasError('email', 'required')">
-        <small>El email es requerido</small>
-      </ion-text>
-      <ion-text color="danger" *ngIf="hasError('email', 'email')">
-        <small>Email inválido</small>
-      </ion-text>
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="email" class="form-label d-flex align-items-center">
+              <i class="bi bi-envelope-fill me-2 icon-primary"></i>
+              Email
+            </label>
+            <input 
+              type="email" 
+              class="form-control form-control-lg" 
+              id="email"
+              formControlName="email"
+              placeholder="tu@email.com">
+            <div class="text-danger small mt-1" *ngIf="hasError('email', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>El email es requerido
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('email', 'email')">
+              <i class="bi bi-exclamation-circle me-1"></i>Email inválido
+            </div>
+          </div>
 
-      <!-- Teléfono -->
-      <ion-item class="mt-2">
-        <ion-label position="floating">Teléfono</ion-label>
-        <ion-input 
-          type="tel" 
-          formControlName="phone"
-          placeholder="0999999999">
-        </ion-input>
-      </ion-item>
-      <ion-text color="danger" *ngIf="hasError('phone', 'required')">
-        <small>El teléfono es requerido</small>
-      </ion-text>
-      <ion-text color="danger" *ngIf="hasError('phone', 'pattern')">
-        <small>Debe tener 10 dígitos</small>
-      </ion-text>
+          <!-- Teléfono -->
+          <div class="mb-3">
+            <label for="phone" class="form-label d-flex align-items-center">
+              <i class="bi bi-phone-fill me-2 icon-primary"></i>
+              Teléfono
+            </label>
+            <input 
+              type="tel" 
+              class="form-control form-control-lg" 
+              id="phone"
+              formControlName="phone"
+              placeholder="0999999999">
+            <div class="text-danger small mt-1" *ngIf="hasError('phone', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>El teléfono es requerido
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('phone', 'pattern')">
+              <i class="bi bi-exclamation-circle me-1"></i>Debe tener 10 dígitos
+            </div>
+          </div>
 
-      <!-- Contraseña -->
-      <ion-item class="mt-2">
-        <ion-label position="floating">Contraseña</ion-label>
-        <ion-input 
-          [type]="showPassword ? 'text' : 'password'" 
-          formControlName="password"
-          placeholder="Mínimo 6 caracteres">
-        </ion-input>
-        <ion-button 
-          slot="end" 
-          fill="clear" 
-          (click)="togglePasswordVisibility()">
-          <ion-icon 
-            [name]="showPassword ? 'eye-off-outline' : 'eye-outline'">
-          </ion-icon>
-        </ion-button>
-      </ion-item>
-      <ion-text color="danger" *ngIf="hasError('password', 'required')">
-        <small>La contraseña es requerida</small>
-      </ion-text>
-      <ion-text color="danger" *ngIf="hasError('password', 'minlength')">
-        <small>Mínimo 6 caracteres</small>
-      </ion-text>
+          <!-- Contraseña -->
+          <div class="mb-3">
+            <label for="password" class="form-label d-flex align-items-center">
+              <i class="bi bi-lock-fill me-2 icon-primary"></i>
+              Contraseña
+            </label>
+            <div class="input-group">
+              <input 
+                [type]="showPassword ? 'text' : 'password'" 
+                class="form-control form-control-lg" 
+                id="password"
+                formControlName="password"
+                placeholder="Mínimo 6 caracteres">
+              <button 
+                class="btn btn-outline-secondary" 
+                type="button" 
+                (click)="togglePasswordVisibility()">
+                <i [class]="showPassword ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'"></i>
+              </button>
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('password', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>La contraseña es requerida
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('password', 'minlength')">
+              <i class="bi bi-exclamation-circle me-1"></i>Mínimo 6 caracteres
+            </div>
+          </div>
 
-      <!-- Campos opcionales para DONOR -->
-      <div *ngIf="shouldShowField('address')">
-        <ion-item class="mt-2">
-          <ion-label position="floating">Dirección (Opcional)</ion-label>
-          <ion-input 
-            type="text" 
-            formControlName="address"
-            placeholder="Tu dirección">
-          </ion-input>
-        </ion-item>
+          <!-- Campos opcionales para DONOR -->
+          <div *ngIf="shouldShowField('address')">
+            <div class="alert alert-info d-flex align-items-start mb-3" role="alert">
+              <i class="bi bi-info-circle-fill me-2 mt-1 icon-primary"></i>
+              <small>Como donante, puedes agregar tu ubicación (opcional)</small>
+            </div>
 
-        <ion-item class="mt-2">
-          <ion-label position="floating">Ciudad (Opcional)</ion-label>
-          <ion-input 
-            type="text" 
-            formControlName="city"
-            placeholder="Tu ciudad">
-          </ion-input>
-        </ion-item>
+            <div class="mb-3">
+              <label for="address" class="form-label d-flex align-items-center">
+                <i class="bi bi-geo-alt-fill me-2 icon-success"></i>
+                Dirección <span class="text-muted small ms-1">(Opcional)</span>
+              </label>
+              <input 
+                type="text" 
+                class="form-control form-control-lg" 
+                id="address"
+                formControlName="address">
+            </div>
+
+            <div class="mb-3">
+              <label for="city" class="form-label d-flex align-items-center">
+                <i class="bi bi-building me-2 icon-success"></i>
+                Ciudad <span class="text-muted small ms-1">(Opcional)</span>
+              </label>
+              <input 
+                type="text" 
+                class="form-control form-control-lg" 
+                id="city"
+                formControlName="city">
+            </div>
+          </div>
+
+          <!-- Mensajes -->
+          <div class="alert alert-danger d-flex align-items-center mb-3" role="alert" *ngIf="errorMessage">
+            <i class="bi bi-exclamation-triangle-fill me-2 icon-danger"></i>
+            <div>{{ errorMessage }}</div>
+          </div>
+
+          <div class="alert alert-success d-flex align-items-center mb-3" role="alert" *ngIf="successMessage">
+            <i class="bi bi-check-circle-fill me-2 icon-success"></i>
+            <div>{{ successMessage }}</div>
+          </div>
+
+          <!-- Botón Registrar -->
+          <button 
+            type="submit" 
+            class="btn btn-primary btn-lg w-100 fw-bold"
+            [disabled]="isLoading">
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+            <i class="bi bi-check-circle-fill me-2" *ngIf="!isLoading"></i>
+            <span *ngIf="!isLoading">Registrarse</span>
+            <span *ngIf="isLoading">Registrando...</span>
+          </button>
+
+        </form>
       </div>
-
-      <!-- Mensajes -->
-      <ion-text color="danger" *ngIf="errorMessage" class="d-block mt-3">
-        <p class="ion-text-center">
-          <ion-icon name="alert-circle-outline"></ion-icon>
-          {{ errorMessage }}
-        </p>
-      </ion-text>
-
-      <ion-text color="success" *ngIf="successMessage" class="d-block mt-3">
-        <p class="ion-text-center">
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
-          {{ successMessage }}
-        </p>
-      </ion-text>
-
-      <!-- Botón Registrar -->
-      <ion-button 
-        expand="block" 
-        type="submit" 
-        class="mt-4"
-        [disabled]="isLoading">
-        <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
-        <span *ngIf="!isLoading">Registrarse</span>
-      </ion-button>
-
-    </form>
+    </div>
 
     <!-- Link a Login -->
     <div class="text-center mt-4">
-      <p>
+      <p class="text-muted">
         ¿Ya tienes cuenta? 
-        <ion-button fill="clear" (click)="goToLogin()">
+        <a href="javascript:void(0)" class="text-decoration-none fw-bold text-primary" (click)="goToLogin()">
           Inicia sesión aquí
-        </ion-button>
+        </a>
       </p>
     </div>
 

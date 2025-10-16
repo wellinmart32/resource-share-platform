@@ -1,88 +1,102 @@
 <ion-header>
-  <ion-toolbar color="primary">
+  <ion-toolbar>
     <ion-title>Iniciar Sesión</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <div class="login-container">
+<ion-content>
+  <div class="container-auth py-4">
     
-    <!-- Logo o título -->
+    <!-- Logo / Título -->
     <div class="text-center mb-4">
-      <h1>CompartirRecursos</h1>
+      <div class="avatar-circle mb-3 mx-auto">
+        <i class="bi bi-heart-fill text-white fs-1"></i>
+      </div>
+      <h2 class="fw-bold text-dark">Compartir Solidario</h2>
       <p class="text-muted">Plataforma de Donación</p>
     </div>
 
     <!-- Formulario -->
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-      
-      <!-- Email -->
-      <ion-item>
-        <ion-label position="floating">Email</ion-label>
-        <ion-input 
-          type="email" 
-          formControlName="email"
-          placeholder="ejemplo@correo.com">
-        </ion-input>
-      </ion-item>
-      <ion-text color="danger" *ngIf="hasError('email', 'required')">
-        <small>El email es requerido</small>
-      </ion-text>
-      <ion-text color="danger" *ngIf="hasError('email', 'email')">
-        <small>Email inválido</small>
-      </ion-text>
+    <div class="card shadow-soft">
+      <div class="card-body p-4">
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+          
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="email" class="form-label d-flex align-items-center">
+              <i class="bi bi-envelope-fill me-2 icon-primary"></i>
+              Email
+            </label>
+            <input 
+              type="email" 
+              class="form-control form-control-lg" 
+              id="email"
+              formControlName="email"
+              placeholder="tu@email.com">
+            <div class="text-danger small mt-1" *ngIf="hasError('email', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>El email es requerido
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('email', 'email')">
+              <i class="bi bi-exclamation-circle me-1"></i>Email inválido
+            </div>
+          </div>
 
-      <!-- Contraseña -->
-      <ion-item class="mt-3">
-        <ion-label position="floating">Contraseña</ion-label>
-        <ion-input 
-          [type]="showPassword ? 'text' : 'password'" 
-          formControlName="password"
-          placeholder="Mínimo 6 caracteres">
-        </ion-input>
-        <ion-button 
-          slot="end" 
-          fill="clear" 
-          (click)="togglePasswordVisibility()">
-          <ion-icon 
-            [name]="showPassword ? 'eye-off-outline' : 'eye-outline'">
-          </ion-icon>
-        </ion-button>
-      </ion-item>
-      <ion-text color="danger" *ngIf="hasError('password', 'required')">
-        <small>La contraseña es requerida</small>
-      </ion-text>
-      <ion-text color="danger" *ngIf="hasError('password', 'minlength')">
-        <small>Mínimo 6 caracteres</small>
-      </ion-text>
+          <!-- Contraseña -->
+          <div class="mb-3">
+            <label for="password" class="form-label d-flex align-items-center">
+              <i class="bi bi-lock-fill me-2 icon-primary"></i>
+              Contraseña
+            </label>
+            <div class="input-group">
+              <input 
+                [type]="showPassword ? 'text' : 'password'" 
+                class="form-control form-control-lg" 
+                id="password"
+                formControlName="password"
+                placeholder="Mínimo 6 caracteres">
+              <button 
+                class="btn btn-outline-secondary" 
+                type="button" 
+                (click)="togglePasswordVisibility()">
+                <i [class]="showPassword ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'"></i>
+              </button>
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('password', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>La contraseña es requerida
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('password', 'minlength')">
+              <i class="bi bi-exclamation-circle me-1"></i>Mínimo 6 caracteres
+            </div>
+          </div>
 
-      <!-- Mensaje de error -->
-      <ion-text color="danger" *ngIf="errorMessage" class="d-block mt-3">
-        <p class="ion-text-center">
-          <ion-icon name="alert-circle-outline"></ion-icon>
-          {{ errorMessage }}
-        </p>
-      </ion-text>
+          <!-- Mensaje de error -->
+          <div class="alert alert-danger d-flex align-items-center mb-3" role="alert" *ngIf="errorMessage">
+            <i class="bi bi-exclamation-triangle-fill me-2 icon-danger"></i>
+            <div>{{ errorMessage }}</div>
+          </div>
 
-      <!-- Botón Login -->
-      <ion-button 
-        expand="block" 
-        type="submit" 
-        class="mt-4"
-        [disabled]="isLoading">
-        <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
-        <span *ngIf="!isLoading">Iniciar Sesión</span>
-      </ion-button>
+          <!-- Botón Login -->
+          <button 
+            type="submit" 
+            class="btn btn-primary btn-lg w-100 fw-bold"
+            [disabled]="isLoading">
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+            <i class="bi bi-box-arrow-in-right me-2" *ngIf="!isLoading"></i>
+            <span *ngIf="!isLoading">Iniciar Sesión</span>
+            <span *ngIf="isLoading">Iniciando...</span>
+          </button>
 
-    </form>
+        </form>
+      </div>
+    </div>
 
     <!-- Link a Registro -->
     <div class="text-center mt-4">
-      <p>
+      <p class="text-muted">
         ¿No tienes cuenta? 
-        <ion-button fill="clear" (click)="goToRegister()">
+        <a href="javascript:void(0)" class="text-decoration-none fw-bold text-primary" (click)="goToRegister()">
           Regístrate aquí
-        </ion-button>
+        </a>
       </p>
     </div>
 

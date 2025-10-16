@@ -21,7 +21,6 @@ export class RegisterComponent implements OnInit {
   successMessage = '';
   showPassword = false;
   
-  // Roles disponibles para el usuario
   roles = [
     { value: UserRole.DONOR, label: 'Donante (Tengo recursos para donar)' },
     { value: UserRole.RECEIVER, label: 'Receptor (Necesito recursos)' }
@@ -49,14 +48,13 @@ export class RegisterComponent implements OnInit {
       this.router.navigate(['/home']);
     }
 
-    // Mostrar/ocultar campos según el rol
     this.registerForm.get('role')?.valueChanges.subscribe(role => {
       this.updateFieldsForRole(role);
     });
   }
 
   /**
-   * Procesa el registro
+   * Procesa el registro del usuario
    */
   onSubmit() {
     if (this.registerForm.invalid) {
@@ -74,17 +72,17 @@ export class RegisterComponent implements OnInit {
       next: (response) => {
         console.log('Registro exitoso');
         this.isLoading = false;
-        this.successMessage = 'Registro exitoso. Redirigiendo al login...';
+        this.successMessage = 'Registro exitoso. Redirigiendo...';
         
         setTimeout(() => {
-          this.router.navigate(['/login']);
-        }, 2000);
+          this.router.navigate(['/home']);
+        }, 1500);
       },
       error: (error) => {
         console.error('Error en registro:', error);
         this.isLoading = false;
         
-        if (error.status === 409) {
+        if (error.status === 409 || error.status === 400) {
           this.errorMessage = 'El email ya está registrado';
         } else if (error.status === 0) {
           this.errorMessage = 'No se pudo conectar al servidor';
@@ -103,11 +101,9 @@ export class RegisterComponent implements OnInit {
     const cityControl = this.registerForm.get('city');
 
     if (role === UserRole.DONOR) {
-      // Para DONOR, address y city son opcionales pero recomendados
       addressControl?.setValidators([]);
       cityControl?.setValidators([]);
     } else {
-      // Para RECEIVER, no son necesarios
       addressControl?.setValidators([]);
       cityControl?.setValidators([]);
     }

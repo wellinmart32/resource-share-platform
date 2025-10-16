@@ -1,122 +1,154 @@
-<nav class="navbar navbar-light bg-light sticky-top border-bottom">
+<!-- Header -->
+<nav class="navbar navbar-light sticky-top border-bottom" style="background: white;">
   <div class="container-fluid">
-    <button class="btn btn-link text-dark" (click)="goBack()">
-      <i class="bi bi-arrow-left fs-5"></i>
+    <button class="btn btn-link text-dark p-0" (click)="goBack()">
+      <i class="bi bi-arrow-left fs-4"></i>
     </button>
-    <span class="navbar-brand mb-0 h5">Mis Donaciones</span>
+    <span class="navbar-brand mb-0 h5 text-dark fw-bold">Mis Donaciones</span>
     <button class="btn btn-success btn-sm" (click)="publishNewResource()">
-      <i class="bi bi-plus-circle"></i>
+      <i class="bi bi-plus-circle me-1"></i>
+      Nuevo
     </button>
   </div>
 </nav>
 
-<div class="container py-3">
+<!-- Contenido -->
+<div class="container py-3" style="background: var(--background-light); min-height: 100vh;">
 
-  <div class="alert alert-danger" *ngIf="errorMessage">
-    <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
+  <!-- Mensaje de error -->
+  <div class="alert alert-danger d-flex align-items-center" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle-fill me-2 icon-danger"></i>
+    <div>{{ errorMessage }}</div>
   </div>
 
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-primary text-white">
-      <h6 class="mb-0">
-        <i class="bi bi-filter me-2"></i>Filtrar por Estado
+  <!-- Filtros -->
+  <div class="card shadow-soft mb-3">
+    <div class="card-header text-white" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+      <h6 class="mb-0 d-flex align-items-center">
+        <i class="bi bi-funnel me-2"></i>
+        Filtrar por Estado
       </h6>
     </div>
-    <div class="card-body">
-      <div class="btn-group w-100 flex-wrap" role="group">
+    <div class="card-body p-3">
+      <div class="d-flex flex-wrap gap-2">
         <button 
           *ngFor="let filter of filters"
           type="button" 
-          [class]="'btn ' + filter.class + (selectedFilter === filter.value ? ' active' : '')"
-          (click)="filterByStatus(filter.value)">
+          class="btn flex-grow-1"
+          [class.btn-primary]="selectedFilter === filter.value && filter.value === 'ALL'"
+          [class.btn-success]="selectedFilter === filter.value && filter.value === 'AVAILABLE'"
+          [class.btn-warning]="selectedFilter === filter.value && filter.value === 'CLAIMED'"
+          [class.btn-info]="selectedFilter === filter.value && filter.value === 'IN_TRANSIT'"
+          [class.btn-secondary]="selectedFilter === filter.value && filter.value === 'DELIVERED'"
+          [class.btn-outline-primary]="selectedFilter !== filter.value && filter.value === 'ALL'"
+          [class.btn-outline-success]="selectedFilter !== filter.value && filter.value === 'AVAILABLE'"
+          [class.btn-outline-warning]="selectedFilter !== filter.value && filter.value === 'CLAIMED'"
+          [class.btn-outline-info]="selectedFilter !== filter.value && filter.value === 'IN_TRANSIT'"
+          [class.btn-outline-secondary]="selectedFilter !== filter.value && filter.value === 'DELIVERED'"
+          (click)="filterByStatus(filter.value)"
+          style="min-width: 100px;">
           {{ filter.label }}
-          <span class="badge bg-secondary ms-1">{{ filter.count }}</span>
+          <span class="badge bg-dark ms-1">{{ filter.count }}</span>
         </button>
       </div>
     </div>
   </div>
 
+  <!-- Loading -->
   <div *ngIf="isLoading" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Cargando...</span>
     </div>
-    <p class="text-muted mt-2">Cargando donaciones...</p>
+    <p class="text-muted mt-3">Cargando donaciones...</p>
   </div>
 
-  <div *ngIf="!isLoading && filteredResources.length === 0" class="text-center py-5">
-    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
-    <h5 class="text-muted mt-3">No hay donaciones</h5>
-    <p class="text-muted">
-      <span *ngIf="selectedFilter === 'ALL'">
-        Aún no has publicado ningún recurso
-      </span>
-      <span *ngIf="selectedFilter !== 'ALL'">
-        No hay donaciones con el estado seleccionado
-      </span>
-    </p>
-    <button class="btn btn-success mt-3" (click)="publishNewResource()">
-      <i class="bi bi-plus-circle me-2"></i>Publicar Primer Recurso
-    </button>
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && filteredResources.length === 0" class="card shadow-soft">
+    <div class="card-body text-center py-5">
+      <div class="mb-4">
+        <i class="bi bi-inbox" style="font-size: 5rem; color: var(--text-muted);"></i>
+      </div>
+      <h5 class="text-dark mb-2">No hay donaciones</h5>
+      <p class="text-muted mb-4">
+        <span *ngIf="selectedFilter === 'ALL'">
+          Aún no has publicado ningún recurso
+        </span>
+        <span *ngIf="selectedFilter !== 'ALL'">
+          No hay donaciones con el estado seleccionado
+        </span>
+      </p>
+      <button class="btn btn-success btn-lg" (click)="publishNewResource()">
+        <i class="bi bi-plus-circle me-2"></i>
+        Publicar Primer Recurso
+      </button>
+    </div>
   </div>
 
+  <!-- Grid de recursos -->
   <div class="row g-3">
     <div class="col-md-6 col-lg-4" *ngFor="let resource of filteredResources">
-      <div class="card shadow-sm h-100" (click)="viewResourceDetail(resource)" style="cursor: pointer;">
+      <div class="card shadow-soft h-100" (click)="viewResourceDetail(resource)" style="cursor: pointer; transition: transform 0.2s;"
+           onmouseover="this.style.transform='translateY(-4px)'"
+           onmouseout="this.style.transform='translateY(0)'">
+        
         <div class="card-body">
           
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center">
-              <i [class]="'bi ' + getCategoryIcon(resource.category) + ' text-primary fs-4 me-2'"></i>
+          <!-- Header del recurso -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex align-items-start flex-grow-1">
+              <i [class]="'bi ' + getCategoryIcon(resource.category) + ' icon-primary fs-3 me-2'"></i>
               <div>
-                <h6 class="card-title mb-0">{{ resource.title }}</h6>
+                <h6 class="card-title mb-1 text-dark fw-bold">{{ resource.title }}</h6>
                 <small class="text-muted">{{ getCategoryLabel(resource.category) }}</small>
               </div>
             </div>
-            <span [class]="'badge ' + getStatusBadgeClass(resource.status)">
+            <span class="badge ms-2" [class]="getStatusBadgeClass(resource.status)">
               {{ getStatusText(resource.status) }}
             </span>
           </div>
 
+          <!-- Descripción -->
           <p class="card-text text-muted small mb-3">
             {{ resource.description }}
           </p>
 
-          <div class="mb-2">
-            <small class="text-muted">
-              <i class="bi bi-geo-alt me-1"></i>
-              {{ resource.address || 'Ubicación registrada' }}
-            </small>
-          </div>
+          <!-- Información adicional -->
+          <div class="d-flex flex-column gap-2">
+            <!-- Ubicación -->
+            <div class="d-flex align-items-center">
+              <i class="bi bi-geo-alt-fill icon-primary me-2"></i>
+              <small class="text-muted">{{ resource.address || 'Ubicación registrada' }}</small>
+            </div>
 
-          <div class="mb-2">
-            <small class="text-muted">
-              <i class="bi bi-calendar me-1"></i>
-              Publicado: {{ formatDate(resource.createdAt) }}
-            </small>
-          </div>
+            <!-- Fecha de publicación -->
+            <div class="d-flex align-items-center">
+              <i class="bi bi-calendar-event icon-primary me-2"></i>
+              <small class="text-muted">Publicado: {{ formatDate(resource.createdAt) }}</small>
+            </div>
 
-          <div *ngIf="resource.receiverName" class="mb-2">
-            <small class="text-success">
-              <i class="bi bi-person-check me-1"></i>
-              Reclamado por: {{ resource.receiverName }}
-            </small>
-          </div>
+            <!-- Receptor (si existe) -->
+            <div *ngIf="resource.receiverName" class="d-flex align-items-center">
+              <i class="bi bi-person-check-fill icon-success me-2"></i>
+              <small class="text-success fw-bold">Reclamado por: {{ resource.receiverName }}</small>
+            </div>
 
-          <div *ngIf="resource.deliveredAt" class="mb-2">
-            <small class="text-info">
-              <i class="bi bi-check-circle me-1"></i>
-              Entregado: {{ formatDate(resource.deliveredAt) }}
-            </small>
+            <!-- Fecha de entrega -->
+            <div *ngIf="resource.deliveredAt" class="d-flex align-items-center">
+              <i class="bi bi-check-circle-fill icon-success me-2"></i>
+              <small class="text-success">Entregado: {{ formatDate(resource.deliveredAt) }}</small>
+            </div>
           </div>
 
         </div>
 
-        <div class="card-footer bg-light" *ngIf="canCancelResource(resource)">
+        <!-- Footer con acciones -->
+        <div class="card-footer bg-white border-top" *ngIf="canCancelResource(resource)">
           <div class="d-grid">
             <button 
               class="btn btn-outline-danger btn-sm"
               (click)="cancelResource(resource, $event)">
-              <i class="bi bi-x-circle me-1"></i>Cancelar Donación
+              <i class="bi bi-x-circle me-1"></i>
+              Cancelar Donación
             </button>
           </div>
         </div>
@@ -124,9 +156,11 @@
     </div>
   </div>
 
-  <div class="text-center mt-4" *ngIf="!isLoading && filteredResources.length > 0">
-    <button class="btn btn-outline-primary" (click)="publishNewResource()">
-      <i class="bi bi-plus-circle me-2"></i>Publicar Nuevo Recurso
+  <!-- Botón para publicar nuevo -->
+  <div class="text-center mt-4 pb-4" *ngIf="!isLoading && filteredResources.length > 0">
+    <button class="btn btn-success btn-lg" (click)="publishNewResource()">
+      <i class="bi bi-plus-circle me-2"></i>
+      Publicar Nuevo Recurso
     </button>
   </div>
 
