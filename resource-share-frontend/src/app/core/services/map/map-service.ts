@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import { LocationCoordinates } from '../geolocation/geolocation-service';
 
+// Configuración para inicializar un mapa
 export interface MapConfig {
   containerId: string;
   center?: [number, number];
@@ -9,6 +10,7 @@ export interface MapConfig {
   zoomControl?: boolean;
 }
 
+// Configuración para crear marcadores en el mapa
 export interface MarkerConfig {
   coordinates: [number, number];
   title?: string;
@@ -22,6 +24,7 @@ export interface MarkerConfig {
 })
 export class MapService {
   
+  // Colecciones para gestionar múltiples mapas y sus elementos
   private maps = new Map<string, L.Map>();
   private markers = new Map<string, Map<string, L.Marker>>();
   private polylines = new Map<string, Map<string, L.Polyline>>();
@@ -50,25 +53,33 @@ export class MapService {
 
   constructor() {}
 
+  /**
+   * Inicializa un nuevo mapa de Leaflet en el contenedor especificado
+   * Configura el tile layer de OpenStreetMap y los controles básicos
+   */
   initMap(config: MapConfig): L.Map | null {
+    // Verificar si el mapa ya existe
     if (this.maps.has(config.containerId)) {
       console.warn(`Mapa ${config.containerId} ya existe`);
       return this.maps.get(config.containerId) || null;
     }
 
     try {
+      // Crear instancia del mapa
       const map = L.map(config.containerId, {
         zoomControl: config.zoomControl ?? true
       }).setView(
-        config.center || [-2.1709979, -79.9223592],
+        config.center || [-2.1709979, -79.9223592], // Default: Guayaquil
         config.zoom || 13
       );
 
+      // Agregar capa de tiles de OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
+      // Registrar el mapa y sus colecciones
       this.maps.set(config.containerId, map);
       this.markers.set(config.containerId, new Map());
       this.polylines.set(config.containerId, new Map());
@@ -81,10 +92,17 @@ export class MapService {
     }
   }
 
+  /**
+   * Obtiene la instancia de un mapa por su ID
+   */
   getMap(mapId: string): L.Map | null {
     return this.maps.get(mapId) || null;
   }
 
+  /**
+   * Destruye un mapa y limpia todos sus recursos
+   * Importante llamar este método en ngOnDestroy para evitar memory leaks
+   */
   destroyMap(mapId: string): void {
     const map = this.maps.get(mapId);
     if (map) {
@@ -96,6 +114,10 @@ export class MapService {
     }
   }
 
+  /**
+   * Agrega un marcador al mapa especificado
+   * Soporta iconos personalizados, popups y marcadores arrastrables
+   */
   addMarker(mapId: string, markerId: string, config: MarkerConfig): L.Marker | null {
     const map = this.maps.get(mapId);
     if (!map) {
@@ -103,22 +125,28 @@ export class MapService {
       return null;
     }
 
+    // Crear marcador con configuración
     const marker = L.marker(config.coordinates, {
       icon: config.icon || this.icons.resource,
       title: config.title,
       draggable: config.draggable || false
     }).addTo(map);
 
+    // Agregar popup si existe
     if (config.popup) {
       marker.bindPopup(config.popup);
     }
 
+    // Guardar referencia del marcador
     const mapMarkers = this.markers.get(mapId);
     mapMarkers?.set(markerId, marker);
 
     return marker;
   }
 
+  /**
+   * Actualiza la posición de un marcador existente
+   */
   updateMarkerPosition(mapId: string, markerId: string, coordinates: LocationCoordinates): boolean {
     const mapMarkers = this.markers.get(mapId);
     if (!mapMarkers) {
@@ -136,6 +164,9 @@ export class MapService {
     return false;
   }
 
+  /**
+   * Elimina un marcador específico del mapa
+   */
   removeMarker(mapId: string, markerId: string): boolean {
     const mapMarkers = this.markers.get(mapId);
     if (!mapMarkers) return false;
@@ -150,6 +181,9 @@ export class MapService {
     return false;
   }
 
+  /**
+   * Elimina todos los marcadores de un mapa
+   */
   clearMarkers(mapId: string): void {
     const mapMarkers = this.markers.get(mapId);
     if (mapMarkers) {
@@ -158,6 +192,10 @@ export class MapService {
     }
   }
 
+  /**
+   * Agrega una polilínea (línea) al mapa
+   * Útil para mostrar rutas o conexiones entre puntos
+   */
   addPolyline(
     mapId: string,
     polylineId: string,
@@ -170,18 +208,23 @@ export class MapService {
       return null;
     }
 
+    // Crear polilínea con estilo
     const polyline = L.polyline(coordinates, {
       color: color,
       weight: 4,
       opacity: 0.7
     }).addTo(map);
 
+    // Guardar referencia
     const mapPolylines = this.polylines.get(mapId);
     mapPolylines?.set(polylineId, polyline);
 
     return polyline;
   }
 
+  /**
+   * Elimina una polilínea específica del mapa
+   */
   removePolyline(mapId: string, polylineId: string): boolean {
     const mapPolylines = this.polylines.get(mapId);
     if (!mapPolylines) return false;
@@ -196,6 +239,10 @@ export class MapService {
     return false;
   }
 
+  /**
+   * Centra el mapa en una ubicación específica
+   * Opcionalmente ajusta el nivel de zoom
+   */
   centerMap(mapId: string, coordinates: LocationCoordinates, zoom?: number): void {
     const map = this.maps.get(mapId);
     if (map) {
@@ -203,6 +250,10 @@ export class MapService {
     }
   }
 
+  /**
+   * Ajusta el mapa para mostrar todos los marcadores
+   * Útil cuando hay múltiples puntos de interés
+   */
   fitBounds(mapId: string): void {
     const map = this.maps.get(mapId);
     const mapMarkers = this.markers.get(mapId);
@@ -216,6 +267,10 @@ export class MapService {
     }
   }
 
+  /**
+   * Agrega múltiples marcadores de recursos al mapa
+   * Automáticamente ajusta el zoom para mostrar todos
+   */
   addResourceMarkers(mapId: string, resources: any[]): void {
     resources.forEach(resource => {
       this.addMarker(mapId, `resource-${resource.id}`, {
@@ -233,6 +288,10 @@ export class MapService {
     this.fitBounds(mapId);
   }
 
+  /**
+   * Dibuja una ruta entre dos ubicaciones
+   * Útil para mostrar la dirección desde el usuario hasta el recurso
+   */
   drawRoute(
     mapId: string,
     from: LocationCoordinates,
@@ -250,6 +309,10 @@ export class MapService {
     );
   }
 
+  /**
+   * Invalida y recalcula el tamaño del mapa
+   * Necesario después de cambios en el contenedor (resize, show/hide)
+   */
   invalidateSize(mapId: string): void {
     const map = this.maps.get(mapId);
     if (map) {
@@ -257,6 +320,9 @@ export class MapService {
     }
   }
 
+  /**
+   * Obtiene los límites geográficos actuales del mapa visible
+   */
   getMapBounds(mapId: string): { north: number; south: number; east: number; west: number } | null {
     const map = this.maps.get(mapId);
     if (map) {

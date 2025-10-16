@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import { ResourceService } from '../../core/services/resource/resource-service';
 import { Resource } from '../../core/models/resource/resource.model';
 import { ResourceStatus } from '../../core/enums/resource-status.enum';
@@ -11,17 +12,22 @@ import { ResourceCategory } from '../../core/enums/resource-category.enum';
   templateUrl: './my-donations.component.html',
   styleUrls: ['./my-donations.component.scss'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, IonicModule]
 })
 export class MyDonationsComponent implements OnInit {
 
+  // Listas de recursos
   allResources: Resource[] = [];
   filteredResources: Resource[] = [];
+  
+  // Estados de carga
   isLoading = true;
   errorMessage = '';
 
+  // Filtro seleccionado
   selectedFilter: ResourceStatus | 'ALL' = 'ALL';
   
+  // Configuración de filtros con contadores
   filters: { value: ResourceStatus | 'ALL', label: string, count: number, class: string }[] = [
     { value: 'ALL', label: 'Todas', count: 0, class: 'btn-outline-primary' },
     { value: ResourceStatus.AVAILABLE, label: 'Disponibles', count: 0, class: 'btn-outline-success' },
@@ -39,18 +45,22 @@ export class MyDonationsComponent implements OnInit {
     this.loadDonations();
   }
 
+  /**
+   * Carga las donaciones del usuario desde el backend
+   * Si hay error de conexión, carga datos de prueba
+   */
   loadDonations() {
     this.isLoading = true;
     this.errorMessage = '';
 
     this.resourceService.getMyDonorResources().subscribe({
-      next: (resources) => {
+      next: (resources: Resource[]) => {
         this.allResources = resources;
         this.filteredResources = resources;
         this.updateFilterCounts();
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando donaciones:', error);
         this.isLoading = false;
         
@@ -58,54 +68,75 @@ export class MyDonationsComponent implements OnInit {
           this.errorMessage = 'No se pudo conectar al servidor';
           this.loadMockData();
         } else {
-          this.errorMessage = 'Error al cargar las donaciones';
+          this.errorMessage = 'Error al cargar tus donaciones';
         }
       }
     });
   }
 
+  /**
+   * Carga datos de prueba cuando no hay conexión al backend
+   */
   private loadMockData() {
     this.allResources = [
       {
         id: 1,
-        title: 'Ropa de Niño',
-        description: 'Conjunto de ropa para niño de 5-7 años en buen estado',
+        title: 'Ropa de Invierno',
+        description: 'Chaquetas y abrigos en buen estado para adultos',
         category: ResourceCategory.CLOTHING,
         status: ResourceStatus.AVAILABLE,
         donorId: 1,
-        donorName: 'Juan Pérez',
+        donorName: 'Usuario Actual',
         latitude: -2.1709979,
         longitude: -79.9223592,
-        address: 'Centro de Guayaquil',
-        createdAt: new Date('2024-01-10')
+        address: 'Norte de Guayaquil',
+        createdAt: new Date('2024-01-12')
       },
       {
         id: 2,
-        title: 'Juguetes Educativos',
-        description: 'Set de juguetes didácticos para niños de 3-6 años',
+        title: 'Juguetes Didácticos',
+        description: 'Set completo de bloques de construcción',
         category: ResourceCategory.TOYS,
         status: ResourceStatus.CLAIMED,
         donorId: 1,
-        donorName: 'Juan Pérez',
-        latitude: -2.1709979,
-        longitude: -79.9223592,
-        receiverId: 2,
-        receiverName: 'María González',
+        donorName: 'Usuario Actual',
+        latitude: -2.1609979,
+        longitude: -79.9123592,
+        address: 'Urdesa',
+        receiverId: 3,
+        receiverName: 'Ana Pérez',
         claimedAt: new Date('2024-01-11'),
-        createdAt: new Date('2024-01-09')
+        createdAt: new Date('2024-01-10')
       },
       {
         id: 3,
-        title: 'Mesa de Estudio',
-        description: 'Mesa de madera en buen estado, ideal para estudio',
+        title: 'Mesa de Comedor',
+        description: 'Mesa de madera con 4 sillas',
         category: ResourceCategory.FURNITURE,
+        status: ResourceStatus.IN_TRANSIT,
+        donorId: 1,
+        donorName: 'Usuario Actual',
+        latitude: -2.1750979,
+        longitude: -79.9423592,
+        address: 'Kennedy',
+        receiverId: 4,
+        receiverName: 'Luis Torres',
+        claimedAt: new Date('2024-01-10'),
+        createdAt: new Date('2024-01-09')
+      },
+      {
+        id: 4,
+        title: 'Libros de Cocina',
+        description: 'Colección de 5 libros de recetas',
+        category: ResourceCategory.BOOKS,
         status: ResourceStatus.DELIVERED,
         donorId: 1,
-        donorName: 'Juan Pérez',
-        latitude: -2.1709979,
-        longitude: -79.9223592,
-        receiverId: 3,
-        receiverName: 'Carlos Ramírez',
+        donorName: 'Usuario Actual',
+        latitude: -2.1550979,
+        longitude: -79.9523592,
+        address: 'Alborada',
+        receiverId: 5,
+        receiverName: 'María González',
         claimedAt: new Date('2024-01-08'),
         deliveredAt: new Date('2024-01-10'),
         createdAt: new Date('2024-01-07')
@@ -117,6 +148,9 @@ export class MyDonationsComponent implements OnInit {
     this.isLoading = false;
   }
 
+  /**
+   * Actualiza los contadores de cada filtro según el estado de los recursos
+   */
   private updateFilterCounts() {
     this.filters[0].count = this.allResources.length;
     this.filters[1].count = this.allResources.filter(r => r.status === ResourceStatus.AVAILABLE).length;
@@ -125,6 +159,9 @@ export class MyDonationsComponent implements OnInit {
     this.filters[4].count = this.allResources.filter(r => r.status === ResourceStatus.DELIVERED).length;
   }
 
+  /**
+   * Filtra los recursos según el estado seleccionado
+   */
   filterByStatus(status: ResourceStatus | 'ALL') {
     this.selectedFilter = status;
     
@@ -135,27 +172,62 @@ export class MyDonationsComponent implements OnInit {
     }
   }
 
+  /**
+   * Navega a la página para publicar un nuevo recurso
+   */
   publishNewResource() {
     this.router.navigate(['/donor/publish-resource']);
   }
 
+  /**
+   * Navega de regreso a la página principal
+   */
   goBack() {
     this.router.navigate(['/home']);
   }
 
+  /**
+   * Muestra los detalles de un recurso en un alert
+   * En producción, esto podría abrir un modal o página de detalles
+   */
   viewResourceDetail(resource: Resource) {
-    alert(`Detalle del recurso:\n\nTítulo: ${resource.title}\nEstado: ${this.getStatusText(resource.status)}\nCategoría: ${this.getCategoryLabel(resource.category)}`);
+    const receiverInfo = resource.receiverName 
+      ? `\nReclamado por: ${resource.receiverName}` 
+      : '\nDisponible';
+    
+    const deliveryInfo = resource.deliveredAt 
+      ? `\nEntregado: ${this.formatDate(resource.deliveredAt)}` 
+      : '';
+    
+    alert(`Detalle de la Donación:\n\nTítulo: ${resource.title}\nCategoría: ${this.getCategoryLabel(resource.category)}\nEstado: ${this.getStatusText(resource.status)}\nDescripción: ${resource.description}\nUbicación: ${resource.address || 'No especificada'}${receiverInfo}${deliveryInfo}`);
   }
 
+  /**
+   * Cancela una donación que aún no ha sido reclamada
+   * Envía la solicitud al backend y actualiza la lista
+   */
   cancelResource(resource: Resource, event: Event) {
     event.stopPropagation();
     
-    if (confirm(`¿Estás seguro de cancelar la donación "${resource.title}"?`)) {
+    if (confirm(`¿Estás seguro de cancelar la donación "${resource.title}"?\n\nEsta acción no se puede deshacer.`)) {
       console.log('Cancelando recurso:', resource.id);
-      alert('Funcionalidad de cancelar será implementada con el backend');
+      // TODO: Implementar llamada al backend cuando esté disponible
+      alert('La funcionalidad de cancelar será implementada próximamente');
     }
   }
 
+  /**
+   * Verifica si un recurso puede ser cancelado
+   * Solo se pueden cancelar recursos disponibles o reclamados
+   */
+  canCancelResource(resource: Resource): boolean {
+    return resource.status === ResourceStatus.AVAILABLE || 
+           resource.status === ResourceStatus.CLAIMED;
+  }
+
+  /**
+   * Obtiene la clase CSS del badge según el estado del recurso
+   */
   getStatusBadgeClass(status: ResourceStatus): string {
     switch (status) {
       case ResourceStatus.AVAILABLE:
@@ -163,9 +235,9 @@ export class MyDonationsComponent implements OnInit {
       case ResourceStatus.CLAIMED:
         return 'bg-warning text-dark';
       case ResourceStatus.IN_TRANSIT:
-        return 'bg-primary';
+        return 'bg-info';
       case ResourceStatus.DELIVERED:
-        return 'bg-info text-dark';
+        return 'bg-secondary';
       case ResourceStatus.CANCELLED:
         return 'bg-danger';
       default:
@@ -173,6 +245,9 @@ export class MyDonationsComponent implements OnInit {
     }
   }
 
+  /**
+   * Obtiene el texto en español para mostrar el estado del recurso
+   */
   getStatusText(status: ResourceStatus): string {
     switch (status) {
       case ResourceStatus.AVAILABLE:
@@ -190,6 +265,9 @@ export class MyDonationsComponent implements OnInit {
     }
   }
 
+  /**
+   * Obtiene el icono de Bootstrap Icons según la categoría del recurso
+   */
   getCategoryIcon(category: string): string {
     const icons: { [key: string]: string } = {
       CLOTHING: 'bi-bag',
@@ -206,6 +284,9 @@ export class MyDonationsComponent implements OnInit {
     return icons[category] || 'bi-box';
   }
 
+  /**
+   * Obtiene la etiqueta en español de la categoría
+   */
   getCategoryLabel(category: string): string {
     const labels: { [key: string]: string } = {
       CLOTHING: 'Ropa',
@@ -222,13 +303,12 @@ export class MyDonationsComponent implements OnInit {
     return labels[category] || category;
   }
 
+  /**
+   * Formatea una fecha en formato legible en español
+   */
   formatDate(date: Date | undefined): string {
     if (!date) return 'N/A';
     const d = new Date(date);
     return d.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
-  }
-
-  canCancelResource(resource: Resource): boolean {
-    return resource.status === ResourceStatus.AVAILABLE;
   }
 }

@@ -25,7 +25,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
-  // Categorías disponibles con sus iconos
+  // Categorías disponibles para los recursos con sus iconos de Bootstrap
   categories = [
     { value: ResourceCategory.CLOTHING, label: 'Ropa', icon: 'bi-bag' },
     { value: ResourceCategory.FOOD, label: 'Alimentos', icon: 'bi-basket' },
@@ -39,7 +39,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     { value: ResourceCategory.OTHERS, label: 'Otros', icon: 'bi-box' }
   ];
 
-  // Variables para el mapa
+  // Variables para manejo del mapa interactivo
   currentLocation: LocationCoordinates | null = null;
   map: L.Map | null = null;
   locationMarker: L.Marker | null = null;
@@ -52,6 +52,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     private mapService: MapService,
     private router: Router
   ) {
+    // Inicialización del formulario con validaciones
     this.resourceForm = this.formBuilder.group({
       title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
@@ -61,6 +62,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Pequeño delay para asegurar que el DOM esté listo antes de inicializar el mapa
     setTimeout(() => {
       this.initMap();
       this.getCurrentLocation();
@@ -68,23 +70,26 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    // Limpieza: destruir el mapa al salir del componente
     if (this.map) {
       this.mapService.destroyMap('publish-resource-map');
     }
   }
 
   /**
-   * Inicializa el mapa de Leaflet
+   * Inicializa el mapa de Leaflet en el contenedor especificado
+   * Configura el centro en Guayaquil y habilita eventos de clic
    */
   initMap() {
     this.map = this.mapService.initMap({
       containerId: 'publish-resource-map',
-      center: [-2.1709979, -79.9223592],
+      center: [-2.1709979, -79.9223592], // Coordenadas de Guayaquil
       zoom: 13
     });
 
     if (this.map) {
       this.mapInitialized = true;
+      // Escuchar clics en el mapa para seleccionar ubicación
       this.map.on('click', (e: L.LeafletMouseEvent) => {
         this.onMapClick(e);
       });
@@ -92,7 +97,8 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtiene la ubicación actual del usuario mediante GPS
+   * Obtiene la ubicación actual del usuario usando el GPS del dispositivo
+   * Muestra un indicador de carga mientras obtiene las coordenadas
    */
   getCurrentLocation() {
     this.isLoadingLocation = true;
@@ -113,7 +119,8 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Maneja el clic en el mapa para seleccionar ubicación manualmente
+   * Maneja el evento de clic en el mapa
+   * Permite al usuario seleccionar manualmente la ubicación del recurso
    */
   onMapClick(e: L.LeafletMouseEvent) {
     const location: LocationCoordinates = {
@@ -127,14 +134,18 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
 
   /**
    * Actualiza el marcador en el mapa con la ubicación seleccionada
+   * Si ya existe un marcador, lo elimina y crea uno nuevo
+   * El marcador es arrastrable para ajustar la ubicación con precisión
    */
   updateMapLocation(location: LocationCoordinates) {
     if (!this.map) return;
 
+    // Eliminar marcador anterior si existe
     if (this.locationMarker) {
       this.mapService.removeMarker('publish-resource-map', 'location');
     }
 
+    // Crear nuevo marcador en la ubicación seleccionada
     this.locationMarker = this.mapService.addMarker('publish-resource-map', 'location', {
       coordinates: [location.latitude, location.longitude],
       title: 'Ubicación del recurso',
@@ -142,7 +153,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       draggable: true
     });
 
-    // Actualizar ubicación cuando el marcador se arrastra
+    // Escuchar cuando el usuario arrastra el marcador
     if (this.locationMarker) {
       this.locationMarker.on('dragend', () => {
         const position = this.locationMarker!.getLatLng();
@@ -153,19 +164,24 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       });
     }
 
+    // Centrar el mapa en la nueva ubicación
     this.mapService.centerMap('publish-resource-map', location, 15);
   }
 
   /**
-   * Publica el recurso enviándolo al backend
+   * Procesa el envío del formulario y publica el recurso
+   * Valida que todos los campos requeridos estén completos
+   * Valida que se haya seleccionado una ubicación en el mapa
    */
   onSubmit() {
+    // Validar formulario
     if (this.resourceForm.invalid) {
       this.markFormGroupTouched(this.resourceForm);
       this.errorMessage = 'Por favor completa todos los campos requeridos';
       return;
     }
 
+    // Validar que se haya seleccionado ubicación
     if (!this.currentLocation) {
       this.errorMessage = 'Por favor selecciona una ubicación en el mapa';
       return;
@@ -175,6 +191,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
 
+    // Preparar datos del recurso
     const resourceRequest: ResourceRequest = {
       title: this.resourceForm.value.title,
       description: this.resourceForm.value.description,
@@ -184,11 +201,13 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       address: this.resourceForm.value.address
     };
 
+    // Enviar recurso al backend
     this.resourceService.publishResource(resourceRequest).subscribe({
       next: (response: any) => {
         this.isLoading = false;
         this.successMessage = 'Recurso publicado exitosamente';
         
+        // Redirigir a "Mis Donaciones" después de 2 segundos
         setTimeout(() => {
           this.router.navigate(['/donor/my-donations']);
         }, 2000);
@@ -197,6 +216,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
         console.error('Error publicando recurso:', error);
         this.isLoading = false;
         
+        // Manejo de errores según el código de respuesta
         if (error.status === 0) {
           this.errorMessage = 'No se pudo conectar al servidor. Usando datos de prueba...';
           setTimeout(() => {
@@ -209,10 +229,17 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Navega de regreso a la página principal
+   */
   goBack() {
     this.router.navigate(['/home']);
   }
 
+  /**
+   * Marca todos los campos del formulario como tocados
+   * Esto activa la visualización de errores de validación
+   */
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
@@ -220,11 +247,19 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Verifica si un campo específico tiene un error de validación
+   * Solo retorna true si el campo ha sido tocado por el usuario
+   */
   hasError(field: string, error: string): boolean {
     const control = this.resourceForm.get(field);
     return !!(control?.hasError(error) && control?.touched);
   }
 
+  /**
+   * Obtiene el mensaje de error apropiado para un campo
+   * Retorna string vacío si no hay error o el campo no ha sido tocado
+   */
   getFieldError(field: string): string {
     const control = this.resourceForm.get(field);
     if (!control?.errors || !control.touched) return '';

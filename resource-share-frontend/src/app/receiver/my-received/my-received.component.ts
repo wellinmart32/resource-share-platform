@@ -16,14 +16,19 @@ import { ResourceCategory } from '../../core/enums/resource-category.enum';
 })
 export class MyReceivedComponent implements OnInit {
 
+  // Listas de recursos
   allResources: Resource[] = [];
   filteredResources: Resource[] = [];
+  
+  // Estados de carga y mensajes
   isLoading = true;
   errorMessage = '';
   successMessage = '';
 
+  // Filtro seleccionado
   selectedFilter: ResourceStatus | 'ALL' = 'ALL';
   
+  // Configuración de filtros con contadores
   filters: { value: ResourceStatus | 'ALL', label: string, count: number, class: string }[] = [
     { value: 'ALL', label: 'Todos', count: 0, class: 'btn-outline-primary' },
     { value: ResourceStatus.CLAIMED, label: 'Reclamados', count: 0, class: 'btn-outline-warning' },
@@ -40,6 +45,10 @@ export class MyReceivedComponent implements OnInit {
     this.loadReceivedResources();
   }
 
+  /**
+   * Carga los recursos que el usuario ha reclamado desde el backend
+   * Si hay error de conexión, carga datos de prueba
+   */
   loadReceivedResources() {
     this.isLoading = true;
     this.errorMessage = '';
@@ -64,6 +73,9 @@ export class MyReceivedComponent implements OnInit {
     });
   }
 
+  /**
+   * Carga datos de prueba cuando no hay conexión al backend
+   */
   private loadMockData() {
     this.allResources = [
       {
@@ -122,6 +134,9 @@ export class MyReceivedComponent implements OnInit {
     this.isLoading = false;
   }
 
+  /**
+   * Actualiza los contadores de cada filtro según el estado de los recursos
+   */
   private updateFilterCounts() {
     this.filters[0].count = this.allResources.length;
     this.filters[1].count = this.allResources.filter(r => r.status === ResourceStatus.CLAIMED).length;
@@ -129,6 +144,9 @@ export class MyReceivedComponent implements OnInit {
     this.filters[3].count = this.allResources.filter(r => r.status === ResourceStatus.DELIVERED).length;
   }
 
+  /**
+   * Filtra los recursos según el estado seleccionado
+   */
   filterByStatus(status: ResourceStatus | 'ALL') {
     this.selectedFilter = status;
     
@@ -139,24 +157,38 @@ export class MyReceivedComponent implements OnInit {
     }
   }
 
+  /**
+   * Navega a la página de búsqueda de recursos
+   */
   browseMoreResources() {
     this.router.navigate(['/receiver/browse-resources']);
   }
 
+  /**
+   * Navega de regreso a la página principal
+   */
   goBack() {
     this.router.navigate(['/home']);
   }
 
+  /**
+   * Muestra los detalles de un recurso en un alert
+   * En producción, esto podría abrir un modal o página de detalles
+   */
   viewResourceDetail(resource: Resource) {
     alert(`Detalle del recurso:\n\nTítulo: ${resource.title}\nEstado: ${this.getStatusText(resource.status)}\nDonante: ${resource.donorName}\nCategoría: ${this.getCategoryLabel(resource.category)}`);
   }
 
+  /**
+   * Confirma la recepción de un recurso que está en tránsito
+   * Notifica al donante que la entrega fue exitosa
+   */
   confirmReceipt(resource: Resource, event: Event) {
     event.stopPropagation();
     
     if (confirm(`¿Confirmas que recibiste "${resource.title}"?\n\nEsto notificará al donante que la entrega fue exitosa.`)) {
       this.resourceService.confirmDelivery(resource.id).subscribe({
-        next: (response) => {
+        next: (response: any) => {
           this.successMessage = `Has confirmado la recepción de "${resource.title}"`;
           this.loadReceivedResources();
           
@@ -164,7 +196,7 @@ export class MyReceivedComponent implements OnInit {
             this.successMessage = '';
           }, 3000);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error confirmando recepción:', error);
           
           if (error.status === 0) {
@@ -184,6 +216,17 @@ export class MyReceivedComponent implements OnInit {
     }
   }
 
+  /**
+   * Verifica si un recurso puede confirmar su recepción
+   * Solo se puede confirmar si está en tránsito
+   */
+  canConfirmReceipt(resource: Resource): boolean {
+    return resource.status === ResourceStatus.IN_TRANSIT;
+  }
+
+  /**
+   * Obtiene la clase CSS del badge según el estado del recurso
+   */
   getStatusBadgeClass(status: ResourceStatus): string {
     switch (status) {
       case ResourceStatus.CLAIMED:
@@ -199,6 +242,9 @@ export class MyReceivedComponent implements OnInit {
     }
   }
 
+  /**
+   * Obtiene el texto en español para mostrar el estado del recurso
+   */
   getStatusText(status: ResourceStatus): string {
     switch (status) {
       case ResourceStatus.CLAIMED:
@@ -214,6 +260,25 @@ export class MyReceivedComponent implements OnInit {
     }
   }
 
+  /**
+   * Obtiene el icono del estado para mostrar en badges
+   */
+  getStatusIcon(status: ResourceStatus): string {
+    switch (status) {
+      case ResourceStatus.CLAIMED:
+        return 'bi-hand-thumbs-up';
+      case ResourceStatus.IN_TRANSIT:
+        return 'bi-truck';
+      case ResourceStatus.DELIVERED:
+        return 'bi-check-circle';
+      default:
+        return 'bi-question-circle';
+    }
+  }
+
+  /**
+   * Obtiene el icono de Bootstrap Icons según la categoría del recurso
+   */
   getCategoryIcon(category: string): string {
     const icons: { [key: string]: string } = {
       CLOTHING: 'bi-bag',
@@ -230,6 +295,9 @@ export class MyReceivedComponent implements OnInit {
     return icons[category] || 'bi-box';
   }
 
+  /**
+   * Obtiene la etiqueta en español de la categoría
+   */
   getCategoryLabel(category: string): string {
     const labels: { [key: string]: string } = {
       CLOTHING: 'Ropa',
@@ -246,26 +314,12 @@ export class MyReceivedComponent implements OnInit {
     return labels[category] || category;
   }
 
+  /**
+   * Formatea una fecha en formato legible en español
+   */
   formatDate(date: Date | undefined): string {
     if (!date) return 'N/A';
     const d = new Date(date);
     return d.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
-  }
-
-  canConfirmReceipt(resource: Resource): boolean {
-    return resource.status === ResourceStatus.IN_TRANSIT;
-  }
-
-  getStatusIcon(status: ResourceStatus): string {
-    switch (status) {
-      case ResourceStatus.CLAIMED:
-        return 'bi-hand-thumbs-up';
-      case ResourceStatus.IN_TRANSIT:
-        return 'bi-truck';
-      case ResourceStatus.DELIVERED:
-        return 'bi-check-circle';
-      default:
-        return 'bi-question-circle';
-    }
   }
 }

@@ -13,21 +13,28 @@ import { UserRole } from '../../enums/user-role.enum';
 export class AuthService {
   private readonly API_URL = 'http://localhost:8080/api/auth';
   
-  // BehaviorSubject permite a otros componentes suscribirse a cambios del usuario
+  // BehaviorSubject para mantener el estado del usuario actual de forma reactiva
+  // Permite que otros componentes se suscriban a cambios de autenticación
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {
+    // Verificar si hay una sesión guardada al inicializar el servicio
     this.checkStoredAuth();
   }
 
+  /**
+   * Inicia sesión con email y contraseña
+   * Guarda el token JWT y la información del usuario en localStorage
+   */
   login(loginRequest: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API_URL}/login`, loginRequest)
       .pipe(
         tap(response => {
-          // Guardar token en localStorage
+          // Guardar token y datos del usuario
           this.saveAuthData(response.token, response);
           
+          // Crear objeto de usuario para el BehaviorSubject
           const user: User = {
             id: response.userId,
             role: response.role,
@@ -38,6 +45,7 @@ export class AuthService {
             active: true
           };
           
+          // Emitir el nuevo usuario a todos los suscriptores
           this.currentUserSubject.next(user);
         }),
         catchError(error => {
@@ -47,13 +55,18 @@ export class AuthService {
       );
   }
 
+  /**
+   * Registra un nuevo usuario en la plataforma
+   * Automáticamente inicia sesión después del registro exitoso
+   */
   register(registerRequest: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API_URL}/register`, registerRequest)
       .pipe(
         tap(response => {
-          // Guardar token en localStorage
+          // Guardar token y datos del usuario
           this.saveAuthData(response.token, response);
           
+          // Crear objeto de usuario
           const user: User = {
             id: response.userId,
             role: response.role,
@@ -64,6 +77,7 @@ export class AuthService {
             active: true
           };
           
+          // Emitir el nuevo usuario
           this.currentUserSubject.next(user);
         }),
         catchError(error => {
@@ -73,76 +87,118 @@ export class AuthService {
       );
   }
 
+  /**
+   * Cierra la sesión del usuario
+   * Limpia todos los datos de autenticación del localStorage
+   */
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('userFirstName');
+    localStorage.removeItem('userLastName');
+    
+    // Emitir null para indicar que no hay usuario autenticado
     this.currentUserSubject.next(null);
+    
+    console.log('Sesión cerrada exitosamente');
   }
 
   /**
-   * Verifica si hay sesión guardada al cargar la app
+   * Verifica si existe una sesión activa al cargar la aplicación
+   * Restaura el usuario desde localStorage si el token es válido
    */
   private checkStoredAuth(): void {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     const userRole = localStorage.getItem('userRole');
     const userEmail = localStorage.getItem('userEmail');
-
+    
+    // Si existe token y datos de usuario, restaurar la sesión
     if (token && userId && userRole && userEmail) {
       const user: User = {
         id: parseInt(userId),
         role: userRole as UserRole,
         email: userEmail,
-        firstName: '',
-        lastName: '',
+        firstName: localStorage.getItem('userFirstName') || '',
+        lastName: localStorage.getItem('userLastName') || '',
         phone: '',
         active: true
       };
       
       this.currentUserSubject.next(user);
+      console.log('Sesión restaurada desde localStorage');
     }
   }
 
-  private saveAuthData(token: string, response: AuthResponse): void {
+  /**
+   * Guarda los datos de autenticación en localStorage
+   * Incluye token JWT y información básica del usuario
+   */
+  private saveAuthData(token: string, authResponse: AuthResponse): void {
     localStorage.setItem('token', token);
-    localStorage.setItem('userId', response.userId.toString());
-    localStorage.setItem('userRole', response.role);
-    localStorage.setItem('userEmail', response.email);
+    localStorage.setItem('userId', authResponse.userId.toString());
+    localStorage.setItem('userRole', authResponse.role);
+    localStorage.setItem('userEmail', authResponse.email);
+    localStorage.setItem('userFirstName', authResponse.firstName);
+    localStorage.setItem('userLastName', authResponse.lastName);
+    
+    console.log('Datos de autenticación guardados en localStorage');
   }
 
+  /**
+   * Verifica si el usuario tiene una sesión activa
+   * Retorna true si existe un token válido
+   */
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('token');
+    return !!token;
+  }
+
+  /**
+   * Obtiene el token JWT del usuario actual
+   */
   getToken(): string | null {
     return localStorage.getItem('token');
   }
 
-  isAuthenticated(): boolean {
-    return this.getToken() !== null;
-  }
-
+  /**
+   * Obtiene el usuario actualmente autenticado desde el BehaviorSubject
+   */
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  getCurrentUserId(): number | null {
+  /**
+   * Verifica si el usuario actual es un donante
+   */
+  isDonor(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === UserRole.DONOR;
+  }
+
+  /**
+   * Verifica si el usuario actual es un receptor
+   */
+  isReceiver(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === UserRole.RECEIVER;
+  }
+
+  /**
+   * Obtiene el rol del usuario actual desde localStorage
+   */
+  getUserRole(): UserRole | null {
+    const role = localStorage.getItem('userRole');
+    return role as UserRole;
+  }
+
+  /**
+   * Obtiene el ID del usuario actual desde localStorage
+   */
+  getUserId(): number | null {
     const userId = localStorage.getItem('userId');
     return userId ? parseInt(userId) : null;
-  }
-
-  getCurrentUserRole(): UserRole | null {
-    const role = localStorage.getItem('userRole');
-    return role as UserRole | null;
-  }
-
-  isDonor(): boolean {
-    return this.getCurrentUserRole() === UserRole.DONOR;
-  }
-
-  isReceiver(): boolean {
-    return this.getCurrentUserRole() === UserRole.RECEIVER;
-  }
-
-  isAdmin(): boolean {
-    return this.getCurrentUserRole() === UserRole.ADMIN;
   }
 }

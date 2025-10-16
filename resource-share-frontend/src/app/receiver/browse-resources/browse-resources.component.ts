@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import { ResourceService } from '../../core/services/resource/resource-service';
 import { GeolocationService, LocationCoordinates } from '../../core/services/geolocation/geolocation-service';
 import { MapService } from '../../core/services/map/map-service';
@@ -9,6 +10,7 @@ import { ResourceCategory } from '../../core/enums/resource-category.enum';
 import { ResourceStatus } from '../../core/enums/resource-status.enum';
 import * as L from 'leaflet';
 
+// Extiende el modelo Resource para incluir la distancia calculada
 interface ResourceWithDistance extends Resource {
   distance?: number;
 }
@@ -18,23 +20,29 @@ interface ResourceWithDistance extends Resource {
   templateUrl: './browse-resources.component.html',
   styleUrls: ['./browse-resources.component.scss'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, IonicModule]
 })
 export class BrowseResourcesComponent implements OnInit, OnDestroy {
 
+  // Listas de recursos
   allResources: ResourceWithDistance[] = [];
   filteredResources: ResourceWithDistance[] = [];
+  
+  // Estados de carga
   isLoading = true;
   isLoadingLocation = false;
   errorMessage = '';
   successMessage = '';
 
+  // Filtros y ubicación
   selectedCategory: ResourceCategory | 'ALL' = 'ALL';
   userLocation: LocationCoordinates | null = null;
   
+  // Variables del mapa
   map: L.Map | null = null;
   mapInitialized = false;
 
+  // Categorías disponibles para filtrar
   categories: { value: ResourceCategory | 'ALL', label: string, icon: string }[] = [
     { value: 'ALL', label: 'Todas', icon: 'bi-grid' },
     { value: ResourceCategory.CLOTHING, label: 'Ropa', icon: 'bi-bag' },
@@ -57,6 +65,7 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    // Pequeño delay para asegurar que el DOM esté listo
     setTimeout(() => {
       this.initMap();
       this.getCurrentLocation();
@@ -65,11 +74,15 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    // Limpiar el mapa al destruir el componente
     if (this.map) {
       this.mapService.destroyMap('browse-resources-map');
     }
   }
 
+  /**
+   * Inicializa el mapa de Leaflet centrado en Guayaquil
+   */
   initMap() {
     this.map = this.mapService.initMap({
       containerId: 'browse-resources-map',
@@ -82,47 +95,62 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Obtiene la ubicación actual del usuario mediante GPS
+   * Actualiza el mapa con un marcador en la ubicación del usuario
+   */
   getCurrentLocation() {
     this.isLoadingLocation = true;
 
     this.geolocationService.getCurrentLocation().subscribe({
-      next: (location) => {
+      next: (location: LocationCoordinates) => {
         this.userLocation = location;
         this.updateMapWithUserLocation(location);
+        this.calculateDistances();
         this.isLoadingLocation = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error obteniendo ubicación:', error);
         this.isLoadingLocation = false;
       }
     });
   }
 
+  /**
+   * Actualiza el mapa con la ubicación del usuario
+   * Agrega un marcador y centra el mapa en la ubicación
+   */
   private updateMapWithUserLocation(location: LocationCoordinates) {
     if (!this.map) return;
 
+    // Agregar marcador de ubicación del usuario
     this.mapService.addMarker('browse-resources-map', 'user-location', {
       coordinates: [location.latitude, location.longitude],
       title: 'Tu ubicación',
       popup: 'Estás aquí'
     });
 
+    // Centrar el mapa en la ubicación del usuario
     this.mapService.centerMap('browse-resources-map', location, 14);
   }
 
+  /**
+   * Carga los recursos disponibles desde el backend
+   * Si hay error de conexión, carga datos de prueba
+   */
   loadResources() {
     this.isLoading = true;
     this.errorMessage = '';
 
     this.resourceService.getAvailableResources().subscribe({
-      next: (resources) => {
+      next: (resources: Resource[]) => {
         this.allResources = resources;
         this.filteredResources = resources;
         this.calculateDistances();
         this.updateMapMarkers();
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando recursos:', error);
         this.isLoading = false;
         
@@ -136,6 +164,9 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Carga datos de prueba cuando no hay conexión al backend
+   */
   private loadMockData() {
     this.allResources = [
       {
@@ -211,6 +242,10 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     this.isLoading = false;
   }
 
+  /**
+   * Calcula la distancia entre el usuario y cada recurso
+   * Ordena los recursos por distancia (más cercano primero)
+   */
   private calculateDistances() {
     if (!this.userLocation) return;
 
@@ -225,39 +260,45 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     })).sort((a, b) => (a.distance || 0) - (b.distance || 0));
   }
 
+  /**
+   * Actualiza los marcadores en el mapa con los recursos filtrados
+   * Cada marcador muestra información del recurso en un popup
+   */
   private updateMapMarkers() {
     if (!this.map) return;
 
-    this.mapService.clearMarkers('browse-resources-map');
-
-    if (this.userLocation) {
-      this.mapService.addMarker('browse-resources-map', 'user-location', {
-        coordinates: [this.userLocation.latitude, this.userLocation.longitude],
-        title: 'Tu ubicación',
-        popup: 'Estás aquí'
-      });
-    }
-
-    this.filteredResources.forEach((resource, index) => {
-      this.mapService.addMarker('browse-resources-map', `resource-${resource.id}`, {
-        coordinates: [resource.latitude, resource.longitude],
-        title: resource.title,
-        popup: `
-          <strong>${resource.title}</strong><br>
-          ${resource.description}<br>
-          <small>Donante: ${resource.donorName}</small>
-        `
-      });
+    // Limpiar marcadores anteriores de recursos
+    this.filteredResources.forEach((_, index) => {
+      this.mapService.removeMarker('browse-resources-map', `resource-${index}`);
     });
 
-    this.mapService.fitBounds('browse-resources-map');
+    // Agregar nuevos marcadores
+    this.filteredResources.forEach((resource, index) => {
+      const popupContent = `
+        <div class="text-center">
+          <strong>${resource.title}</strong><br>
+          <small>${resource.category}</small><br>
+          <small>Donante: ${resource.donorName}</small>
+        </div>
+      `;
+
+      this.mapService.addMarker('browse-resources-map', `resource-${index}`, {
+        coordinates: [resource.latitude, resource.longitude],
+        title: resource.title,
+        popup: popupContent
+      });
+    });
   }
 
+  /**
+   * Filtra los recursos según la categoría seleccionada
+   * Actualiza el mapa con los nuevos marcadores filtrados
+   */
   filterByCategory(category: ResourceCategory | 'ALL') {
     this.selectedCategory = category;
-
+    
     if (category === 'ALL') {
-      this.filteredResources = [...this.allResources];
+      this.filteredResources = this.allResources;
     } else {
       this.filteredResources = this.allResources.filter(r => r.category === category);
     }
@@ -266,26 +307,46 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     this.updateMapMarkers();
   }
 
+  /**
+   * Muestra los detalles de un recurso en un alert
+   * En producción, esto podría abrir un modal o página de detalles
+   */
+  viewResourceDetail(resource: Resource) {
+    const distanceText = (resource as ResourceWithDistance).distance 
+      ? `\nDistancia: ${(resource as ResourceWithDistance).distance!.toFixed(2)} km` 
+      : '';
+    
+    alert(`Detalle del Recurso:\n\nTítulo: ${resource.title}\nCategoría: ${this.getCategoryLabel(resource.category)}\nDescripción: ${resource.description}\nDonante: ${resource.donorName}\nUbicación: ${resource.address || 'No especificada'}${distanceText}`);
+  }
+
+  /**
+   * Reclama un recurso para el usuario actual
+   * Envía la solicitud al backend y actualiza la lista
+   */
   claimResource(resource: Resource, event: Event) {
     event.stopPropagation();
-
-    if (confirm(`¿Deseas reclamar "${resource.title}"?\n\nAl reclamar este recurso, el donante será notificado y deberás coordinar la entrega.`)) {
+    
+    if (confirm(`¿Deseas reclamar "${resource.title}"?\n\nEl donante será notificado de tu solicitud.`)) {
       this.resourceService.claimResource(resource.id).subscribe({
-        next: (response) => {
+        next: (response: any) => {
           this.successMessage = `Has reclamado "${resource.title}" exitosamente`;
+          this.loadResources();
           
           setTimeout(() => {
-            this.router.navigate(['/receiver/my-received']);
-          }, 2000);
+            this.successMessage = '';
+          }, 3000);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error reclamando recurso:', error);
           
           if (error.status === 0) {
-            this.successMessage = `Recurso "${resource.title}" reclamado (modo demo)`;
+            this.successMessage = `Recurso reclamado (modo demo)`;
+            this.filteredResources = this.filteredResources.filter(r => r.id !== resource.id);
+            this.updateMapMarkers();
+            
             setTimeout(() => {
-              this.router.navigate(['/receiver/my-received']);
-            }, 2000);
+              this.successMessage = '';
+            }, 3000);
           } else {
             this.errorMessage = 'Error al reclamar el recurso. Intenta de nuevo';
           }
@@ -294,18 +355,16 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     }
   }
 
-  viewResourceDetail(resource: Resource) {
-    const distanceText = (resource as any).distance 
-      ? `\nDistancia: ${((resource as any).distance).toFixed(2)} km` 
-      : '';
-    
-    alert(`${resource.title}\n\n${resource.description}\n\nDonante: ${resource.donorName}\nUbicación: ${resource.address}${distanceText}`);
-  }
-
+  /**
+   * Navega de regreso a la página principal
+   */
   goBack() {
     this.router.navigate(['/home']);
   }
 
+  /**
+   * Obtiene el icono de Bootstrap Icons según la categoría
+   */
   getCategoryIcon(category: string): string {
     const icons: { [key: string]: string } = {
       CLOTHING: 'bi-bag',
@@ -322,6 +381,9 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     return icons[category] || 'bi-box';
   }
 
+  /**
+   * Obtiene la etiqueta en español de la categoría
+   */
   getCategoryLabel(category: string): string {
     const labels: { [key: string]: string } = {
       CLOTHING: 'Ropa',
@@ -336,19 +398,5 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
       OTHERS: 'Otros'
     };
     return labels[category] || category;
-  }
-
-  formatDate(date: Date | undefined): string {
-    if (!date) return 'N/A';
-    const d = new Date(date);
-    return d.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
-  }
-
-  formatDistance(distance: number | undefined): string {
-    if (!distance) return '';
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)}m`;
-    }
-    return `${distance.toFixed(1)}km`;
   }
 }

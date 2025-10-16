@@ -14,10 +14,16 @@ import { LoginRequest } from '../../core/models/auth/login-request.model';
   imports: [CommonModule, ReactiveFormsModule, IonicModule]
 })
 export class LoginComponent implements OnInit {
+  
+  // Formulario reactivo de login
   loginForm: FormGroup;
+  
+  // Estados de la vista
   isLoading = false;
   errorMessage = '';
   showPassword = false;
+  
+  // URL de retorno después del login exitoso
   returnUrl = '/home';
 
   constructor(
@@ -26,6 +32,7 @@ export class LoginComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute
   ) {
+    // Inicializar formulario con validaciones
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
@@ -33,18 +40,22 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Redirigir si el usuario ya tiene sesión activa
     if (this.authService.isAuthenticated()) {
       this.router.navigate(['/home']);
       return;
     }
 
+    // Obtener URL de retorno de los parámetros de query (si existe)
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
   }
 
   /**
-   * Procesa el inicio de sesión
+   * Procesa el inicio de sesión del usuario
+   * Valida las credenciales con el backend y guarda el token
    */
   onSubmit() {
+    // Validar que el formulario esté completo
     if (this.loginForm.invalid) {
       this.markFormGroupTouched(this.loginForm);
       return;
@@ -53,21 +64,24 @@ export class LoginComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
+    // Preparar datos de login
     const loginRequest: LoginRequest = {
       email: this.loginForm.value.email,
       password: this.loginForm.value.password
     };
 
+    // Enviar credenciales al backend
     this.authService.login(loginRequest).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         console.log('Login exitoso');
         this.isLoading = false;
-        this.router.navigate(['/home']);
+        this.router.navigate([this.returnUrl]);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error en login:', error);
         this.isLoading = false;
         
+        // Mostrar mensajes de error específicos según el código
         if (error.status === 401) {
           this.errorMessage = 'Email o contraseña incorrectos';
         } else if (error.status === 0) {
@@ -79,14 +93,24 @@ export class LoginComponent implements OnInit {
     });
   }
 
+  /**
+   * Alterna la visibilidad de la contraseña
+   */
   togglePasswordVisibility() {
     this.showPassword = !this.showPassword;
   }
 
+  /**
+   * Navega a la página de registro
+   */
   goToRegister() {
     this.router.navigate(['/register']);
   }
 
+  /**
+   * Marca todos los campos del formulario como tocados
+   * Esto activa la visualización de errores de validación
+   */
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
@@ -94,6 +118,10 @@ export class LoginComponent implements OnInit {
     });
   }
 
+  /**
+   * Verifica si un campo específico tiene un error de validación
+   * Solo retorna true si el campo ha sido tocado por el usuario
+   */
   hasError(field: string, error: string): boolean {
     const control = this.loginForm.get(field);
     return !!(control?.hasError(error) && control?.touched);
