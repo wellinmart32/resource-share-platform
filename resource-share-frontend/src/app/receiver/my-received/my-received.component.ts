@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import { ResourceService } from '../../core/services/resource/resource-service';
 import { Resource } from '../../core/models/resource/resource.model';
 import { ResourceStatus } from '../../core/enums/resource-status.enum';
@@ -11,7 +12,7 @@ import { ResourceCategory } from '../../core/enums/resource-category.enum';
   templateUrl: './my-received.component.html',
   styleUrls: ['./my-received.component.scss'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, IonicModule]
 })
 export class MyReceivedComponent implements OnInit {
 
@@ -44,21 +45,20 @@ export class MyReceivedComponent implements OnInit {
     this.errorMessage = '';
 
     this.resourceService.getMyReceivedResources().subscribe({
-      next: (resources) => {
+      next: (resources: Resource[]) => {
         this.allResources = resources;
         this.filteredResources = resources;
         this.updateFilterCounts();
         this.isLoading = false;
       },
-      error: (error) => {
-        console.error('Error cargando recursos reclamados:', error);
+      error: (error: any) => {
+        console.error('Error cargando recursos recibidos:', error);
         this.isLoading = false;
         
         if (error.status === 0) {
-          this.errorMessage = 'No se pudo conectar al servidor';
           this.loadMockData();
         } else {
-          this.errorMessage = 'Error al cargar los recursos';
+          this.errorMessage = 'Error al cargar tus recursos. Intenta de nuevo.';
         }
       }
     });
@@ -69,28 +69,28 @@ export class MyReceivedComponent implements OnInit {
       {
         id: 10,
         title: 'Laptop Dell',
-        description: 'Laptop en buen estado, ideal para estudio',
+        description: 'Laptop en buen estado, ideal para trabajo',
         category: ResourceCategory.ELECTRONICS,
-        status: ResourceStatus.CLAIMED,
+        status: ResourceStatus.IN_TRANSIT,
         donorId: 3,
         donorName: 'Carlos Mendoza',
-        latitude: -2.1609979,
-        longitude: -79.9123592,
+        latitude: -2.1709979,
+        longitude: -79.9223592,
         address: 'Urdesa',
         receiverId: 1,
         receiverName: 'Usuario Actual',
-        claimedAt: new Date('2024-01-13'),
-        createdAt: new Date('2024-01-10')
+        claimedAt: new Date('2024-01-10'),
+        createdAt: new Date('2024-01-08')
       },
       {
         id: 11,
-        title: 'Silla de Oficina',
-        description: 'Silla ergonómica en excelente estado',
-        category: ResourceCategory.FURNITURE,
-        status: ResourceStatus.IN_TRANSIT,
+        title: 'Ropa de Invierno',
+        description: 'Conjunto de ropa abrigada',
+        category: ResourceCategory.CLOTHING,
+        status: ResourceStatus.CLAIMED,
         donorId: 4,
-        donorName: 'Ana Pérez',
-        latitude: -2.1750979,
+        donorName: 'María González',
+        latitude: -2.1450979,
         longitude: -79.9423592,
         address: 'Alborada',
         receiverId: 1,

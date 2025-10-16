@@ -1,143 +1,201 @@
-<nav class="navbar navbar-light bg-light sticky-top border-bottom">
-  <div class="container-fluid">
-    <button class="btn btn-link text-dark" (click)="goBack()">
-      <i class="bi bi-arrow-left fs-5"></i>
-    </button>
-    <span class="navbar-brand mb-0 h5">Publicar Recurso</span>
-    <div style="width: 40px;"></div>
-  </div>
-</nav>
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Publicar Recurso</ion-title>
+  </ion-toolbar>
+</ion-header>
 
-<div class="container py-3">
+<ion-content>
+  <div class="container-auth py-4">
 
-  <div class="alert alert-danger" *ngIf="errorMessage">
-    <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
-  </div>
-
-  <div class="alert alert-success" *ngIf="successMessage">
-    <i class="bi bi-check-circle me-2"></i>{{ successMessage }}
-  </div>
-
-  <form [formGroup]="resourceForm" (ngSubmit)="onSubmit()">
-
-    <div class="card shadow-sm mb-3">
-      <div class="card-header bg-primary text-white">
-        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Información del Recurso</h6>
+    <!-- Encabezado -->
+    <div class="text-center mb-4">
+      <div class="avatar-circle mb-3 mx-auto" style="background: linear-gradient(135deg, #52C41A 0%, #389e0d 100%);">
+        <i class="bi bi-gift text-white fs-1"></i>
       </div>
-      <div class="card-body">
-
-        <div class="mb-3">
-          <label class="form-label fw-bold">Título <span class="text-danger">*</span></label>
-          <input 
-            type="text" 
-            class="form-control" 
-            formControlName="title"
-            [class.is-invalid]="hasError('title', 'required') || hasError('title', 'minlength')"
-            placeholder="Ej: Ropa de niño, Juguetes, Muebles">
-          <div class="invalid-feedback">{{ getFieldError('title') }}</div>
-          <small class="text-muted">Nombre corto y descriptivo del recurso</small>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label fw-bold">Descripción <span class="text-danger">*</span></label>
-          <textarea 
-            class="form-control" 
-            formControlName="description"
-            rows="4"
-            [class.is-invalid]="hasError('description', 'required') || hasError('description', 'minlength')"
-            placeholder="Describe el recurso: estado, cantidad, detalles importantes..."></textarea>
-          <div class="invalid-feedback">{{ getFieldError('description') }}</div>
-          <small class="text-muted">Proporciona detalles que ayuden a los receptores</small>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
-          <select class="form-select" formControlName="category">
-            <option *ngFor="let cat of categories" [value]="cat.value">
-              {{ cat.label }}
-            </option>
-          </select>
-          <small class="text-muted">Selecciona la categoría más apropiada</small>
-        </div>
-
-        <div class="mb-0">
-          <label class="form-label fw-bold">Dirección de referencia</label>
-          <input 
-            type="text" 
-            class="form-control" 
-            formControlName="address"
-            placeholder="Ej: Cerca del parque central, Av. Principal #123">
-          <small class="text-muted">Opcional: ayuda a ubicarte mejor</small>
-        </div>
-
-      </div>
+      <h2 class="fw-bold text-dark">Donar Recurso</h2>
+      <p class="text-muted">Comparte y ayuda a quien lo necesita</p>
     </div>
 
-    <div class="card shadow-sm mb-3">
-      <div class="card-header bg-success text-white">
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Ubicación del Recurso</h6>
+    <!-- Mensaje de error -->
+    <div class="alert alert-danger d-flex align-items-center mb-3" role="alert" *ngIf="errorMessage">
+      <i class="bi bi-exclamation-triangle-fill me-2 icon-danger"></i>
+      <div>{{ errorMessage }}</div>
+    </div>
+
+    <!-- Mensaje de éxito -->
+    <div class="alert alert-success d-flex align-items-center mb-3" role="alert" *ngIf="successMessage">
+      <i class="bi bi-check-circle-fill me-2 icon-success"></i>
+      <div>{{ successMessage }}</div>
+    </div>
+
+    <!-- Formulario -->
+    <form [formGroup]="resourceForm" (ngSubmit)="onSubmit()">
+
+      <!-- Información del Recurso -->
+      <div class="card shadow-soft mb-3">
+        <div class="card-header text-white" 
+             style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+          <h6 class="mb-0 d-flex align-items-center">
+            <i class="bi bi-info-circle me-2"></i>
+            Información del Recurso
+          </h6>
+        </div>
+        <div class="card-body p-4">
+
+          <!-- Título -->
+          <div class="mb-3">
+            <label for="title" class="form-label d-flex align-items-center">
+              <i class="bi bi-pencil-fill me-2 icon-primary"></i>
+              Título <span class="text-danger">*</span>
+            </label>
+            <input 
+              type="text" 
+              class="form-control form-control-lg" 
+              id="title"
+              formControlName="title"
+              placeholder="Ej: Ropa de niño, Juguetes, Muebles">
+            <div class="text-danger small mt-1" *ngIf="hasError('title', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>El título es requerido
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('title', 'minlength')">
+              <i class="bi bi-exclamation-circle me-1"></i>Mínimo 3 caracteres
+            </div>
+            <small class="text-muted d-block mt-1">Nombre corto y descriptivo</small>
+          </div>
+
+          <!-- Descripción -->
+          <div class="mb-3">
+            <label for="description" class="form-label d-flex align-items-center">
+              <i class="bi bi-card-text me-2 icon-primary"></i>
+              Descripción <span class="text-danger">*</span>
+            </label>
+            <textarea 
+              class="form-control form-control-lg" 
+              id="description"
+              formControlName="description"
+              rows="4"
+              placeholder="Describe el recurso: estado, cantidad, detalles importantes..."></textarea>
+            <div class="text-danger small mt-1" *ngIf="hasError('description', 'required')">
+              <i class="bi bi-exclamation-circle me-1"></i>La descripción es requerida
+            </div>
+            <div class="text-danger small mt-1" *ngIf="hasError('description', 'minlength')">
+              <i class="bi bi-exclamation-circle me-1"></i>Mínimo 10 caracteres
+            </div>
+            <small class="text-muted d-block mt-1">Proporciona detalles que ayuden a los receptores</small>
+          </div>
+
+          <!-- Categoría -->
+          <div class="mb-3">
+            <label for="category" class="form-label d-flex align-items-center">
+              <i class="bi bi-tag-fill me-2 icon-primary"></i>
+              Categoría <span class="text-danger">*</span>
+            </label>
+            <select class="form-select form-select-lg" id="category" formControlName="category">
+              <option *ngFor="let cat of categories" [value]="cat.value">
+                {{ cat.label }}
+              </option>
+            </select>
+            <small class="text-muted d-block mt-1">Selecciona la categoría más apropiada</small>
+          </div>
+
+          <!-- Dirección de referencia -->
+          <div class="mb-0">
+            <label for="address" class="form-label d-flex align-items-center">
+              <i class="bi bi-signpost-fill me-2 icon-primary"></i>
+              Dirección de referencia
+            </label>
+            <input 
+              type="text" 
+              class="form-control form-control-lg" 
+              id="address"
+              formControlName="address"
+              placeholder="Ej: Cerca del parque central, Av. Principal #123">
+            <small class="text-muted d-block mt-1">Opcional: ayuda a ubicarte mejor</small>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Ubicación del Recurso -->
+      <div class="card shadow-soft mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center" 
+             style="background: linear-gradient(135deg, #52C41A 0%, #389e0d 100%);">
+          <h6 class="mb-0 text-white">
+            <i class="bi bi-geo-alt me-2"></i>
+            Ubicación del Recurso
+          </h6>
           <button 
             type="button" 
             class="btn btn-sm btn-light"
             (click)="getCurrentLocation()"
             [disabled]="isLoadingLocation">
-            <i class="bi bi-crosshair" [class.spinner-border]="isLoadingLocation"></i>
-            {{ isLoadingLocation ? 'Obteniendo...' : 'Mi ubicación' }}
+            <span *ngIf="!isLoadingLocation">
+              <i class="bi bi-crosshair me-1"></i>Mi ubicación
+            </span>
+            <span *ngIf="isLoadingLocation">
+              <span class="spinner-border spinner-border-sm me-1"></span>Obteniendo...
+            </span>
           </button>
         </div>
+        <div class="card-body p-0">
+          <div id="publish-resource-map" style="height: 400px; width: 100%;"></div>
+        </div>
+        <div class="card-footer bg-light">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            <span *ngIf="currentLocation">
+              <i class="bi bi-geo-alt-fill text-success me-1"></i>
+              Ubicación: {{ currentLocation.latitude.toFixed(6) }}, {{ currentLocation.longitude.toFixed(6) }}
+            </span>
+            <span *ngIf="!currentLocation">
+              Haz clic en el mapa para seleccionar la ubicación o usa el botón "Mi ubicación"
+            </span>
+          </small>
+        </div>
       </div>
-      <div class="card-body p-0">
-        <div id="publish-resource-map" style="height: 400px; width: 100%;"></div>
+
+      <!-- Botones -->
+      <div class="mb-3">
+        <button 
+          type="submit" 
+          class="btn btn-success btn-lg w-100 fw-bold mb-2"
+          [disabled]="isLoading || !currentLocation">
+          <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+          <i class="bi bi-send me-2" *ngIf="!isLoading"></i>
+          <span *ngIf="!isLoading">Publicar Recurso</span>
+          <span *ngIf="isLoading">Publicando...</span>
+        </button>
+        
+        <button 
+          type="button" 
+          class="btn btn-outline-secondary btn-lg w-100"
+          (click)="goBack()"
+          [disabled]="isLoading">
+          <i class="bi bi-x-circle me-2"></i>
+          Cancelar
+        </button>
       </div>
-      <div class="card-footer bg-light">
-        <small class="text-muted">
-          <i class="bi bi-info-circle me-1"></i>
-          <span *ngIf="currentLocation">
-            <i class="bi bi-geo-alt-fill text-success me-1"></i>
-            Ubicación: {{ currentLocation.latitude.toFixed(6) }}, {{ currentLocation.longitude.toFixed(6) }}
-          </span>
-          <span *ngIf="!currentLocation">
-            Haz clic en el mapa para seleccionar la ubicación o usa el botón "Mi ubicación"
-          </span>
-        </small>
+
+    </form>
+
+    <!-- Consejos -->
+    <div class="card shadow-soft" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: none;">
+      <div class="card-body">
+        <h6 class="card-title d-flex align-items-center text-primary mb-3">
+          <i class="bi bi-lightbulb-fill me-2"></i>
+          Consejos para una mejor donación
+        </h6>
+        <ul class="mb-0 small text-dark" style="line-height: 1.8;">
+          <li>Sé específico en la descripción (talla, color, estado, etc.)</li>
+          <li>Verifica que la ubicación sea correcta antes de publicar</li>
+          <li>Responde rápido cuando alguien reclame el recurso</li>
+          <li>Mantén el recurso disponible hasta confirmar la entrega</li>
+        </ul>
       </div>
     </div>
 
-    <div class="d-grid gap-2 mb-3">
-      <button 
-        type="submit" 
-        class="btn btn-primary btn-lg"
-        [disabled]="isLoading || !currentLocation">
-        <span *ngIf="!isLoading">
-          <i class="bi bi-send me-2"></i>Publicar Recurso
-        </span>
-        <span *ngIf="isLoading">
-          <span class="spinner-border spinner-border-sm me-2"></span>
-          Publicando...
-        </span>
-      </button>
-      <button 
-        type="button" 
-        class="btn btn-outline-secondary"
-        (click)="goBack()"
-        [disabled]="isLoading">
-        <i class="bi bi-x-circle me-2"></i>Cancelar
-      </button>
-    </div>
-
-  </form>
-
-  <div class="card shadow-sm bg-light">
-    <div class="card-body">
-      <h6 class="card-title"><i class="bi bi-lightbulb me-2"></i>Consejos</h6>
-      <ul class="mb-0 small">
-        <li>Sé específico en la descripción (talla, color, estado, etc.)</li>
-        <li>Verifica que la ubicación sea correcta antes de publicar</li>
-        <li>Responde rápido cuando alguien reclame el recurso</li>
-        <li>Mantén el recurso disponible hasta confirmar la entrega</li>
-      </ul>
-    </div>
   </div>
-
-</div>
+</ion-content>

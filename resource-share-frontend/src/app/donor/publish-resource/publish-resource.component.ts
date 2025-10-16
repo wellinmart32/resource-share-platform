@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 import { ResourceService } from '../../core/services/resource/resource-service';
 import { GeolocationService, LocationCoordinates } from '../../core/services/geolocation/geolocation-service';
 import { MapService } from '../../core/services/map/map-service';
@@ -14,7 +15,7 @@ import * as L from 'leaflet';
   templateUrl: './publish-resource.component.html',
   styleUrls: ['./publish-resource.component.scss'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule]
+  imports: [CommonModule, ReactiveFormsModule, IonicModule]
 })
 export class PublishResourceComponent implements OnInit, OnDestroy {
 
@@ -24,6 +25,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
+  // Categorías disponibles con sus iconos
   categories = [
     { value: ResourceCategory.CLOTHING, label: 'Ropa', icon: 'bi-bag' },
     { value: ResourceCategory.FOOD, label: 'Alimentos', icon: 'bi-basket' },
@@ -37,6 +39,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     { value: ResourceCategory.OTHERS, label: 'Otros', icon: 'bi-box' }
   ];
 
+  // Variables para el mapa
   currentLocation: LocationCoordinates | null = null;
   map: L.Map | null = null;
   locationMarker: L.Marker | null = null;
@@ -70,6 +73,9 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Inicializa el mapa de Leaflet
+   */
   initMap() {
     this.map = this.mapService.initMap({
       containerId: 'publish-resource-map',
@@ -85,17 +91,20 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Obtiene la ubicación actual del usuario mediante GPS
+   */
   getCurrentLocation() {
     this.isLoadingLocation = true;
     this.errorMessage = '';
 
     this.geolocationService.getCurrentLocation().subscribe({
-      next: (location) => {
+      next: (location: LocationCoordinates) => {
         this.currentLocation = location;
         this.updateMapLocation(location);
         this.isLoadingLocation = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error obteniendo ubicación:', error);
         this.isLoadingLocation = false;
         this.errorMessage = 'No se pudo obtener tu ubicación. Selecciona una ubicación en el mapa.';
@@ -103,6 +112,9 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Maneja el clic en el mapa para seleccionar ubicación manualmente
+   */
   onMapClick(e: L.LeafletMouseEvent) {
     const location: LocationCoordinates = {
       latitude: e.latlng.lat,
@@ -113,6 +125,9 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     this.updateMapLocation(location);
   }
 
+  /**
+   * Actualiza el marcador en el mapa con la ubicación seleccionada
+   */
   updateMapLocation(location: LocationCoordinates) {
     if (!this.map) return;
 
@@ -127,6 +142,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       draggable: true
     });
 
+    // Actualizar ubicación cuando el marcador se arrastra
     if (this.locationMarker) {
       this.locationMarker.on('dragend', () => {
         const position = this.locationMarker!.getLatLng();
@@ -140,6 +156,9 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     this.mapService.centerMap('publish-resource-map', location, 15);
   }
 
+  /**
+   * Publica el recurso enviándolo al backend
+   */
   onSubmit() {
     if (this.resourceForm.invalid) {
       this.markFormGroupTouched(this.resourceForm);
@@ -166,7 +185,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     };
 
     this.resourceService.publishResource(resourceRequest).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         this.isLoading = false;
         this.successMessage = 'Recurso publicado exitosamente';
         
@@ -174,7 +193,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
           this.router.navigate(['/donor/my-donations']);
         }, 2000);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error publicando recurso:', error);
         this.isLoading = false;
         
