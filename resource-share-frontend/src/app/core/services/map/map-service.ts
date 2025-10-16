@@ -29,25 +29,34 @@ export class MapService {
   private markers = new Map<string, Map<string, L.Marker>>();
   private polylines = new Map<string, Map<string, L.Polyline>>();
   
-  // Iconos personalizados para diferentes tipos de marcadores
+  // Iconos predeterminados de Leaflet con colores personalizados
   private readonly icons = {
+    // Icono azul para el usuario
     user: L.icon({
-      iconUrl: 'assets/icons/marker-user.png',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
     }),
+    // Icono verde para donantes
     donor: L.icon({
-      iconUrl: 'assets/icons/marker-donor.png',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
     }),
+    // Icono rojo para recursos
     resource: L.icon({
-      iconUrl: 'assets/icons/marker-resource.png',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
     })
   };
 
@@ -125,7 +134,7 @@ export class MapService {
       return null;
     }
 
-    // Crear marcador con configuración
+    // Crear marcador con configuración (usa icono resource por defecto)
     const marker = L.marker(config.coordinates, {
       icon: config.icon || this.icons.resource,
       title: config.title,

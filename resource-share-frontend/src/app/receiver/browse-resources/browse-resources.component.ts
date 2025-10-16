@@ -98,20 +98,26 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
   /**
    * Obtiene la ubicación actual del usuario mediante GPS
    * Actualiza el mapa con un marcador en la ubicación del usuario
+   * Si falla, continúa sin mostrar error (la ubicación es opcional)
    */
   getCurrentLocation() {
     this.isLoadingLocation = true;
 
     this.geolocationService.getCurrentLocation().subscribe({
       next: (location: LocationCoordinates) => {
+        console.log('✅ Ubicación obtenida:', location);
         this.userLocation = location;
         this.updateMapWithUserLocation(location);
         this.calculateDistances();
         this.isLoadingLocation = false;
       },
       error: (error: any) => {
-        console.error('Error obteniendo ubicación:', error);
+        console.warn('⚠️ No se pudo obtener la ubicación del usuario:', error);
         this.isLoadingLocation = false;
+        
+        // No mostrar mensaje de error al usuario, la ubicación es opcional
+        // El mapa seguirá funcionando con la vista por defecto
+        console.info('ℹ️ El mapa continuará sin la ubicación del usuario');
       }
     });
   }
@@ -123,15 +129,21 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
   private updateMapWithUserLocation(location: LocationCoordinates) {
     if (!this.map) return;
 
-    // Agregar marcador de ubicación del usuario
-    this.mapService.addMarker('browse-resources-map', 'user-location', {
-      coordinates: [location.latitude, location.longitude],
-      title: 'Tu ubicación',
-      popup: 'Estás aquí'
-    });
+    try {
+      // Agregar marcador de ubicación del usuario (icono azul)
+      this.mapService.addMarker('browse-resources-map', 'user-location', {
+        coordinates: [location.latitude, location.longitude],
+        title: 'Tu ubicación',
+        popup: 'Estás aquí'
+      });
 
-    // Centrar el mapa en la ubicación del usuario
-    this.mapService.centerMap('browse-resources-map', location, 14);
+      // Centrar el mapa en la ubicación del usuario
+      this.mapService.centerMap('browse-resources-map', location, 14);
+      
+      console.log('✅ Marcador de usuario agregado al mapa');
+    } catch (error) {
+      console.error('Error agregando marcador de usuario:', error);
+    }
   }
 
   /**
@@ -155,7 +167,7 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         
         if (error.status === 0) {
-          this.errorMessage = 'No se pudo conectar al servidor';
+          console.warn('⚠️ Backend no disponible, cargando datos de prueba');
           this.loadMockData();
         } else {
           this.errorMessage = 'Error al cargar los recursos';
@@ -240,14 +252,20 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
     this.calculateDistances();
     this.updateMapMarkers();
     this.isLoading = false;
+    
+    console.log('✅ Datos de prueba cargados');
   }
 
   /**
    * Calcula la distancia entre el usuario y cada recurso
    * Ordena los recursos por distancia (más cercano primero)
+   * Solo funciona si se obtuvo la ubicación del usuario
    */
   private calculateDistances() {
-    if (!this.userLocation) return;
+    if (!this.userLocation) {
+      console.info('ℹ️ No hay ubicación del usuario, no se calcularán distancias');
+      return;
+    }
 
     this.filteredResources = this.filteredResources.map(resource => ({
       ...resource,
@@ -258,6 +276,8 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
         resource.longitude
       )
     })).sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    
+    console.log('✅ Distancias calculadas y recursos ordenados');
   }
 
   /**
@@ -267,17 +287,17 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
   private updateMapMarkers() {
     if (!this.map) return;
 
-    // Limpiar marcadores anteriores de recursos
+    // Limpiar marcadores anteriores de recursos (no eliminar el marcador del usuario)
     this.filteredResources.forEach((_, index) => {
       this.mapService.removeMarker('browse-resources-map', `resource-${index}`);
     });
 
-    // Agregar nuevos marcadores
+    // Agregar nuevos marcadores (iconos rojos para recursos)
     this.filteredResources.forEach((resource, index) => {
       const popupContent = `
         <div class="text-center">
           <strong>${resource.title}</strong><br>
-          <small>${resource.category}</small><br>
+          <small>${this.getCategoryLabel(resource.category)}</small><br>
           <small>Donante: ${resource.donorName}</small>
         </div>
       `;
@@ -288,6 +308,8 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
         popup: popupContent
       });
     });
+    
+    console.log(`✅ ${this.filteredResources.length} marcadores de recursos agregados al mapa`);
   }
 
   /**

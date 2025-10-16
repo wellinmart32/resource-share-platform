@@ -52,6 +52,13 @@ export class HomePage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    // CRÍTICO: Verificar autenticación primero
+    if (!this.authService.isAuthenticated()) {
+      console.warn('Usuario no autenticado, redirigiendo a login');
+      this.router.navigate(['/login']);
+      return;
+    }
+
     this.subscribeToAuthChanges();
     this.checkAuthenticationStatus();
   }
@@ -71,7 +78,9 @@ export class HomePage implements OnInit, OnDestroy {
         if (user) {
           this.updateUserData(user);
         } else {
+          // Si el usuario es null, significa que cerró sesión
           this.clearUserData();
+          this.router.navigate(['/login']);
         }
       }
     });
@@ -85,6 +94,7 @@ export class HomePage implements OnInit, OnDestroy {
     const isAuth = this.authService.isAuthenticated();
     
     if (!isAuth) {
+      console.warn('No hay sesión activa, redirigiendo a login');
       this.router.navigate(['/login']);
       return;
     }
@@ -92,6 +102,11 @@ export class HomePage implements OnInit, OnDestroy {
     const currentUser = this.authService.getCurrentUser();
     if (currentUser) {
       this.updateUserData(currentUser);
+    } else {
+      // Si no hay usuario pero hay token, hay un problema
+      console.error('Token existe pero usuario no está disponible');
+      this.authService.logout();
+      this.router.navigate(['/login']);
     }
   }
 
