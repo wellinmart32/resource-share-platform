@@ -25,7 +25,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
-  // Categorías disponibles para los recursos con sus iconos de Bootstrap
   categories = [
     { value: ResourceCategory.CLOTHING, label: 'Ropa', icon: 'bi-bag' },
     { value: ResourceCategory.FOOD, label: 'Alimentos', icon: 'bi-basket' },
@@ -39,7 +38,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     { value: ResourceCategory.OTHERS, label: 'Otros', icon: 'bi-box' }
   ];
 
-  // Variables para manejo del mapa interactivo
   currentLocation: LocationCoordinates | null = null;
   map: L.Map | null = null;
   locationMarker: L.Marker | null = null;
@@ -83,7 +81,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   initMap() {
     this.map = this.mapService.initMap({
       containerId: 'publish-resource-map',
-      center: [-2.1709979, -79.9223592], // Coordenadas de Guayaquil
+      center: [-2.1709979, -79.9223592],
       zoom: 13
     });
 
@@ -98,24 +96,76 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
 
   /**
    * Obtiene la ubicación actual del usuario usando el GPS del dispositivo
-   * Muestra un indicador de carga mientras obtiene las coordenadas
+   * Verifica permisos antes de solicitar ubicación
+   * Si no hay permisos, muestra mensaje y redirige a home
    */
   getCurrentLocation() {
     this.isLoadingLocation = true;
     this.errorMessage = '';
 
-    this.geolocationService.getCurrentLocation().subscribe({
+    // Verificar si el navegador soporta Permissions API
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' as PermissionName })
+        .then(result => {
+          // Si los permisos están denegados, manejar el caso especial
+          if (result.state === 'denied') {
+            this.handlePermissionDenied();
+            return;
+          }
+          // Si los permisos están granted o prompt, intentar obtener ubicación
+          this.requestLocation();
+        })
+        .catch(() => {
+          // Si falla la consulta de permisos, intentar de todas formas
+          this.requestLocation();
+        });
+    } else {
+      // Si el navegador no soporta Permissions API, intentar directamente
+      this.requestLocation();
+    }
+  }
+
+  /**
+   * Solicita la ubicación usando el servicio de geolocalización
+   * Usa getStaticLocation() para mejor compatibilidad con caché
+   */
+  private requestLocation() {
+    this.geolocationService.getStaticLocation().subscribe({
       next: (location: LocationCoordinates) => {
+        console.log('✅ Ubicación del donante obtenida:', location);
         this.currentLocation = location;
         this.updateMapLocation(location);
         this.isLoadingLocation = false;
+        this.successMessage = 'Ubicación detectada correctamente';
+        setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error: any) => {
         console.error('Error obteniendo ubicación:', error);
         this.isLoadingLocation = false;
-        this.errorMessage = 'No se pudo obtener tu ubicación. Selecciona una ubicación en el mapa.';
+        
+        // Si el error es por permisos denegados (code 1), manejar especialmente
+        if (error.code === 1) {
+          this.handlePermissionDenied();
+        } else {
+          // Para otros errores, mostrar mensaje pero permitir selección manual
+          this.errorMessage = 'No se pudo obtener tu ubicación. Selecciona una ubicación en el mapa.';
+        }
       }
     });
+  }
+
+  /**
+   * Maneja el caso cuando los permisos de ubicación son denegados
+   * Muestra un mensaje al usuario y redirige a home después de 4 segundos
+   */
+  private handlePermissionDenied() {
+    this.isLoadingLocation = false;
+    this.errorMessage = 'No tienes permisos de ubicación habilitados. Por favor habilítalos en la configuración de tu navegador. Redirigiendo...';
+    
+    // Redirigir automáticamente después de 4 segundos
+    setTimeout(() => {
+      this.router.navigate(['/home']);
+    }, 4000);
   }
 
   /**
@@ -223,56 +273,39 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
             this.router.navigate(['/home']);
           }, 2000);
         } else {
-          this.errorMessage = 'Error al publicar el recurso. Intenta de nuevo';
+          this.errorMessage = 'Error al publicar el recurso. Intenta de nuevo.';
         }
       }
     });
   }
 
   /**
-   * Navega de regreso a la página principal
-   */
-  goBack() {
-    this.router.navigate(['/home']);
-  }
-
-  /**
    * Marca todos los campos del formulario como tocados
-   * Esto activa la visualización de errores de validación
+   * Útil para mostrar errores de validación
    */
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
       control?.markAsTouched();
+
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
     });
   }
 
   /**
-   * Verifica si un campo específico tiene un error de validación
-   * Solo retorna true si el campo ha sido tocado por el usuario
+   * Verifica si un campo tiene un error específico
    */
-  hasError(field: string, error: string): boolean {
-    const control = this.resourceForm.get(field);
-    return !!(control?.hasError(error) && control?.touched);
+  hasError(fieldName: string, errorName: string): boolean {
+    const field = this.resourceForm.get(fieldName);
+    return !!(field && field.errors && field.errors[errorName] && field.touched);
   }
 
   /**
-   * Obtiene el mensaje de error apropiado para un campo
-   * Retorna string vacío si no hay error o el campo no ha sido tocado
+   * Navega de regreso a la página anterior
    */
-  getFieldError(field: string): string {
-    const control = this.resourceForm.get(field);
-    if (!control?.errors || !control.touched) return '';
-
-    if (control.errors['required']) return 'Este campo es requerido';
-    if (control.errors['minlength']) {
-      const minLength = control.errors['minlength'].requiredLength;
-      return `Mínimo ${minLength} caracteres`;
-    }
-    if (control.errors['maxlength']) {
-      const maxLength = control.errors['maxlength'].requiredLength;
-      return `Máximo ${maxLength} caracteres`;
-    }
-    return '';
+  goBack() {
+    this.router.navigate(['/home']);
   }
 }

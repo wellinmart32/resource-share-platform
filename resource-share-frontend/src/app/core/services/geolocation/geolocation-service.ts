@@ -9,97 +9,232 @@ export interface LocationCoordinates {
   timestamp?: number;
 }
 
+export interface GeolocationError {
+  code: number;
+  message: string;
+  userMessage: string;
+}
+
+export interface LocationMode {
+  enableHighAccuracy: boolean;
+  timeout: number;
+  maximumAge: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class GeolocationService {
   
-  // Ubicación predeterminada: Centro de Guayaquil, Ecuador
   private readonly DEFAULT_LOCATION: LocationCoordinates = {
     latitude: -2.1709979,
     longitude: -79.9223592
   };
+
+  private readonly staticMode: LocationMode = {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 300000
+  };
+
+  private readonly dynamicMode: LocationMode = {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 5000
+  };
+
+  private staticLocation: LocationCoordinates | null = null;
+  private staticLocationTime: number = 0;
+  private dynamicLocation: LocationCoordinates | null = null;
+  private dynamicLocationTime: number = 0;
+
+  private isInDynamicMode = false;
 
   constructor() {
     console.log('🌍 GeolocationService inicializado');
   }
 
   /**
-   * Obtiene la ubicación actual del usuario usando la Geolocation API
-   * Intenta primero con alta precisión, si falla intenta con baja precisión
+   * Verifica el estado de los permisos de geolocalización
+   * Retorna 'granted', 'denied', 'prompt' o 'unavailable'
    */
-  getCurrentLocation(): Observable<LocationCoordinates> {
+  checkPermissions(): Observable<PermissionState | 'unavailable'> {
     if (!this.isGeolocationAvailable()) {
-      console.error('❌ Geolocation no disponible en este navegador');
-      return throwError(() => new Error('Geolocation no soportado'));
+      return of('unavailable' as const);
     }
 
-    // Primero intenta con alta precisión
-    return this.tryGetLocation(true).pipe(
-      catchError(error => {
-        console.warn('⚠️ Alta precisión falló, intentando con baja precisión');
-        // Si falla, intenta con baja precisión
-        return this.tryGetLocation(false);
+    if (!('permissions' in navigator)) {
+      return of('unavailable' as const);
+    }
+
+    return from(
+      navigator.permissions.query({ name: 'geolocation' as PermissionName })
+    ).pipe(
+      map(result => result.state),
+      catchError(() => of('unavailable' as const))
+    );
+  }
+
+  /**
+   * Obtener ubicación estática (para búsqueda de recursos)
+   * Cache de 5 minutos
+   */
+  getStaticLocation(): Observable<LocationCoordinates> {
+    console.log('📍 Solicitando ubicación estática');
+
+    if (this.hasValidStaticCache()) {
+      console.log('⚡ Usando ubicación estática desde cache');
+      return new Observable(observer => {
+        observer.next(this.staticLocation!);
+        observer.complete();
+      });
+    }
+
+    return this.getCurrentLocation(this.staticMode).pipe(
+      map((coordinates) => {
+        this.staticLocation = coordinates;
+        this.staticLocationTime = Date.now();
+        console.log('💾 Ubicación estática guardada en cache (5 minutos)');
+        return coordinates;
       })
     );
   }
 
   /**
-   * Intenta obtener la ubicación con configuración específica
+   * Obtener ubicación dinámica (para tracking en tiempo real)
+   * Cache de 5 segundos
    */
-  private tryGetLocation(highAccuracy: boolean): Observable<LocationCoordinates> {
-    const options: PositionOptions = {
-      enableHighAccuracy: highAccuracy,
-      timeout: highAccuracy ? 15000 : 10000,
-      maximumAge: highAccuracy ? 0 : 30000
-    };
+  getDynamicLocation(): Observable<LocationCoordinates> {
+    console.log('🎯 Solicitando ubicación dinámica');
 
-    console.log(`📍 Intentando obtener ubicación (Alta precisión: ${highAccuracy})`);
+    if (this.hasValidDynamicCache()) {
+      console.log('⚡ Usando ubicación dinámica desde cache');
+      return new Observable(observer => {
+        observer.next(this.dynamicLocation!);
+        observer.complete();
+      });
+    }
 
-    const timeoutMs = options.timeout || 10000;
-
-    return from(
-      new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            console.log('✅ Ubicación obtenida:', {
-              lat: position.coords.latitude.toFixed(6),
-              lng: position.coords.longitude.toFixed(6),
-              accuracy: Math.round(position.coords.accuracy) + 'm'
-            });
-            resolve(position);
-          },
-          (error) => {
-            console.error('❌ Error de geolocalización:', {
-              code: error.code,
-              message: this.getErrorMessage(error.code)
-            });
-            reject(error);
-          },
-          options
-        );
+    return this.getCurrentLocation(this.dynamicMode).pipe(
+      map((coordinates) => {
+        this.dynamicLocation = coordinates;
+        this.dynamicLocationTime = Date.now();
+        console.log('💾 Ubicación dinámica guardada en cache (5 segundos)');
+        return coordinates;
       })
-    ).pipe(
-      timeout(timeoutMs + 1000),
-      map(position => ({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        timestamp: position.timestamp
-      })),
-      catchError(error => {
-        console.error('Error en tryGetLocation:', error);
-        return throwError(() => error);
+    );
+  }
+
+  /**
+   * Forzar obtención de GPS fresco (sin cache)
+   */
+  getFreshLocation(mode: 'static' | 'dynamic' = 'static'): Observable<LocationCoordinates> {
+    console.log(`🔄 Forzando GPS fresco (modo: ${mode})`);
+    
+    const locationMode = mode === 'static' ? this.staticMode : this.dynamicMode;
+    
+    return this.getCurrentLocation(locationMode).pipe(
+      map((coordinates) => {
+        if (mode === 'static') {
+          this.staticLocation = coordinates;
+          this.staticLocationTime = Date.now();
+        } else {
+          this.dynamicLocation = coordinates;
+          this.dynamicLocationTime = Date.now();
+        }
+        console.log(`✅ GPS fresco obtenido y cache ${mode} actualizado`);
+        return coordinates;
+      })
+    );
+  }
+
+  /**
+   * Activar modo dinámico para tracking
+   */
+  enableDynamicMode(): void {
+    console.log('🚀 Activando modo dinámico para tracking');
+    this.isInDynamicMode = true;
+  }
+
+  /**
+   * Desactivar modo dinámico (volver a modo estático)
+   */
+  disableDynamicMode(): void {
+    console.log('🛑 Desactivando modo dinámico');
+    this.isInDynamicMode = false;
+    this.dynamicLocation = null;
+    this.dynamicLocationTime = 0;
+  }
+
+  /**
+   * Obtener ubicación basada en el modo activo
+   */
+  getCurrentActiveLocation(): Observable<LocationCoordinates> {
+    return this.isInDynamicMode ? this.getDynamicLocation() : this.getStaticLocation();
+  }
+
+  /**
+   * Obtener ubicación actual con opciones personalizadas
+   */
+  getCurrentLocation(options?: PositionOptions): Observable<LocationCoordinates> {
+    console.log('📍 Solicitando ubicación actual');
+
+    if (!this.isGeolocationAvailable()) {
+      console.error('❌ Geolocalización no soportada');
+      return throwError(() => this.createError(
+        0, 
+        'Geolocation not supported', 
+        'Tu navegador no soporta geolocalización'
+      ));
+    }
+
+    const finalOptions = options || this.staticMode;
+    console.log('⚙️ Opciones GPS:', finalOptions);
+
+    return from(new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('✅ Ubicación obtenida exitosamente');
+          resolve(position);
+        },
+        (error) => {
+          console.error('❌ Error obteniendo ubicación:', error);
+          reject(error);
+        },
+        finalOptions
+      );
+    })).pipe(
+      timeout(finalOptions.timeout! + 2000),
+      
+      map((position: GeolocationPosition) => {
+        const coordinates: LocationCoordinates = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: position.timestamp
+        };
+
+        console.log(`📍 Coordenadas: ${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`);
+        
+        if (!this.isValidCoordinates(coordinates)) {
+          throw new Error('Coordenadas inválidas recibidas');
+        }
+        
+        return coordinates;
+      }),
+      
+      catchError((error) => {
+        console.error('💥 Error en obtención de ubicación:', error);
+        return throwError(() => this.handleGeolocationError(error));
       })
     );
   }
 
   /**
    * Obtiene ubicación o retorna ubicación por defecto si falla
-   * Útil cuando la ubicación es opcional
    */
   getCurrentLocationOrDefault(): Observable<LocationCoordinates> {
-    return this.getCurrentLocation().pipe(
+    return this.getStaticLocation().pipe(
       catchError(error => {
         console.warn('⚠️ Usando ubicación predeterminada (Guayaquil)');
         return of(this.DEFAULT_LOCATION);
@@ -109,7 +244,6 @@ export class GeolocationService {
 
   /**
    * Observa cambios en la ubicación en tiempo real
-   * Útil para tracking del usuario en movimiento
    */
   watchPosition(): Observable<LocationCoordinates> {
     if (!this.isGeolocationAvailable()) {
@@ -140,12 +274,57 @@ export class GeolocationService {
         }
       );
 
-      // Limpieza cuando se desuscribe
       return () => {
         console.log('🛑 Deteniendo watchPosition');
         navigator.geolocation.clearWatch(watchId);
       };
     });
+  }
+
+  /**
+   * Limpiar cache de ubicaciones
+   */
+  clearCache(mode: 'static' | 'dynamic' | 'all' = 'all'): void {
+    switch (mode) {
+      case 'static':
+        console.log('🧹 Limpiando cache estático');
+        this.staticLocation = null;
+        this.staticLocationTime = 0;
+        break;
+      case 'dynamic':
+        console.log('🧹 Limpiando cache dinámico');
+        this.dynamicLocation = null;
+        this.dynamicLocationTime = 0;
+        break;
+      case 'all':
+      default:
+        console.log('🧹 Limpiando todos los caches');
+        this.staticLocation = null;
+        this.staticLocationTime = 0;
+        this.dynamicLocation = null;
+        this.dynamicLocationTime = 0;
+        break;
+    }
+  }
+
+  /**
+   * Obtener última ubicación conocida
+   */
+  getLastKnownLocation(): LocationCoordinates | null {
+    console.log('💾 Obteniendo última ubicación conocida');
+    
+    const staticAge = this.staticLocationTime;
+    const dynamicAge = this.dynamicLocationTime;
+    
+    if (staticAge > dynamicAge && this.staticLocation) {
+      return this.staticLocation;
+    } else if (this.dynamicLocation) {
+      return this.dynamicLocation;
+    } else if (this.staticLocation) {
+      return this.staticLocation;
+    }
+    
+    return null;
   }
 
   /**
@@ -158,7 +337,7 @@ export class GeolocationService {
     lat2: number,
     lon2: number
   ): number {
-    const R = 6371; // Radio de la Tierra en km
+    const R = 6371;
     const dLat = this.toRadians(lat2 - lat1);
     const dLon = this.toRadians(lon2 - lon1);
     
@@ -172,7 +351,7 @@ export class GeolocationService {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
     
-    return Math.round(distance * 100) / 100; // Redondear a 2 decimales
+    return Math.round(distance * 100) / 100;
   }
 
   /**
@@ -191,12 +370,15 @@ export class GeolocationService {
    * Verifica si las coordenadas son válidas
    */
   isValidCoordinates(coords: LocationCoordinates): boolean {
-    return (
-      coords.latitude >= -90 &&
-      coords.latitude <= 90 &&
-      coords.longitude >= -180 &&
-      coords.longitude <= 180
-    );
+    const { latitude, longitude } = coords;
+    
+    return latitude !== null && 
+           longitude !== null &&
+           latitude >= -90 && 
+           latitude <= 90 &&
+           longitude >= -180 && 
+           longitude <= 180 &&
+           !(latitude === 0 && longitude === 0);
   }
 
   /**
@@ -241,18 +423,90 @@ export class GeolocationService {
   }
 
   /**
-   * Obtiene un mensaje de error legible según el código
+   * Verificar si hay cache estático válido
    */
-  private getErrorMessage(code: number): string {
-    switch (code) {
-      case 1:
-        return 'Permiso denegado por el usuario';
-      case 2:
-        return 'Posición no disponible';
-      case 3:
-        return 'Tiempo de espera agotado';
-      default:
-        return 'Error desconocido';
+  private hasValidStaticCache(): boolean {
+    if (!this.staticLocation) return false;
+    
+    const age = Date.now() - this.staticLocationTime;
+    const isValid = age < this.staticMode.maximumAge!;
+    
+    console.log(`📅 Cache estático: ${Math.round(age/1000)}s, válido: ${isValid}`);
+    return isValid;
+  }
+
+  /**
+   * Verificar si hay cache dinámico válido
+   */
+  private hasValidDynamicCache(): boolean {
+    if (!this.dynamicLocation) return false;
+    
+    const age = Date.now() - this.dynamicLocationTime;
+    const isValid = age < this.dynamicMode.maximumAge!;
+    
+    console.log(`📅 Cache dinámico: ${Math.round(age/1000)}s, válido: ${isValid}`);
+    return isValid;
+  }
+
+  /**
+   * Crear objeto de error personalizado
+   */
+  private createError(code: number, message: string, userMessage: string): GeolocationError {
+    return { code, message, userMessage };
+  }
+
+  /**
+   * Manejar errores de geolocalización
+   */
+  private handleGeolocationError(error: any): GeolocationError {
+    if (error.code !== undefined) {
+      switch (error.code) {
+        case 1:
+          return this.createError(
+            1,
+            'Permission denied',
+            'Permiso de ubicación denegado. Por favor habilita el GPS en tu navegador.'
+          );
+        case 2:
+          return this.createError(
+            2,
+            'Position unavailable',
+            'No se pudo obtener tu ubicación. Verifica tu conexión GPS.'
+          );
+        case 3:
+          return this.createError(
+            3,
+            'Timeout',
+            'Tiempo de espera agotado. Intenta nuevamente.'
+          );
+        default:
+          return this.createError(
+            error.code,
+            'Unknown error',
+            'Error desconocido al obtener ubicación.'
+          );
+      }
     }
+    
+    return this.createError(
+      0,
+      error.message || 'Unknown error',
+      'Error al obtener ubicación. Intenta nuevamente.'
+    );
+  }
+
+  /**
+   * Debug del estado completo del servicio
+   */
+  debugState(): void {
+    console.log('\n🌍 === GEOLOCATION DEBUG ===');
+    console.log('Estado del servicio:');
+    console.log(`  Geolocation disponible: ${!!navigator.geolocation}`);
+    console.log(`  Modo dinámico activo: ${this.isInDynamicMode}`);
+    console.log(`  Ubicación estática:`, this.staticLocation);
+    console.log(`  Cache estático válido: ${this.hasValidStaticCache()}`);
+    console.log(`  Ubicación dinámica:`, this.dynamicLocation);
+    console.log(`  Cache dinámico válido: ${this.hasValidDynamicCache()}`);
+    console.log('🌍 === END DEBUG ===\n');
   }
 }

@@ -40,14 +40,20 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Redirigir si el usuario ya tiene sesión activa
+    // IMPORTANTE: Verificar PRIMERO si el usuario ya tiene sesión activa
+    // Esto previene que se muestre la pantalla de login innecesariamente
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/home']);
+      console.log('✅ Usuario ya autenticado, redirigiendo a /home');
+      // Usar replace:true para reemplazar la historia de navegación
+      this.router.navigate(['/home'], { replaceUrl: true });
       return;
     }
 
+    console.log('ℹ️ Usuario no autenticado, mostrando pantalla de login');
+
     // Obtener URL de retorno de los parámetros de query (si existe)
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+    console.log('📍 Return URL configurada:', this.returnUrl);
   }
 
   /**
@@ -70,15 +76,19 @@ export class LoginComponent implements OnInit {
       password: this.loginForm.value.password
     };
 
+    console.log('🚀 Iniciando sesión para:', loginRequest.email);
+
     // Enviar credenciales al backend
     this.authService.login(loginRequest).subscribe({
       next: (response: any) => {
-        console.log('Login exitoso');
+        console.log('✅ Login exitoso, redirigiendo a:', this.returnUrl);
         this.isLoading = false;
-        this.router.navigate([this.returnUrl]);
+        
+        // Usar replaceUrl para evitar que el usuario vuelva al login con el botón "atrás"
+        this.router.navigate([this.returnUrl], { replaceUrl: true });
       },
       error: (error: any) => {
-        console.error('Error en login:', error);
+        console.error('❌ Error en login:', error);
         this.isLoading = false;
         
         // Mostrar mensajes de error específicos según el código

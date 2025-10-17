@@ -10,7 +10,6 @@ import { ResourceCategory } from '../../core/enums/resource-category.enum';
 import { ResourceStatus } from '../../core/enums/resource-status.enum';
 import * as L from 'leaflet';
 
-// Extiende el modelo Resource para incluir la distancia calculada
 interface ResourceWithDistance extends Resource {
   distance?: number;
 }
@@ -24,25 +23,20 @@ interface ResourceWithDistance extends Resource {
 })
 export class BrowseResourcesComponent implements OnInit, OnDestroy {
 
-  // Listas de recursos
   allResources: ResourceWithDistance[] = [];
   filteredResources: ResourceWithDistance[] = [];
   
-  // Estados de carga
   isLoading = true;
   isLoadingLocation = false;
   errorMessage = '';
   successMessage = '';
 
-  // Filtros y ubicación
   selectedCategory: ResourceCategory | 'ALL' = 'ALL';
   userLocation: LocationCoordinates | null = null;
   
-  // Variables del mapa
   map: L.Map | null = null;
   mapInitialized = false;
 
-  // Categorías disponibles para filtrar
   categories: { value: ResourceCategory | 'ALL', label: string, icon: string }[] = [
     { value: 'ALL', label: 'Todas', icon: 'bi-grid' },
     { value: ResourceCategory.CLOTHING, label: 'Ropa', icon: 'bi-bag' },
@@ -97,29 +91,76 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
 
   /**
    * Obtiene la ubicación actual del usuario mediante GPS
-   * Actualiza el mapa con un marcador en la ubicación del usuario
-   * Si falla, continúa sin mostrar error (la ubicación es opcional)
+   * Verifica permisos antes de solicitar ubicación
+   * Si no hay permisos, muestra mensaje y redirige a home
    */
   getCurrentLocation() {
     this.isLoadingLocation = true;
 
-    this.geolocationService.getCurrentLocation().subscribe({
+    // Verificar si el navegador soporta Permissions API
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' as PermissionName })
+        .then(result => {
+          // Si los permisos están denegados, manejar el caso especial
+          if (result.state === 'denied') {
+            this.handlePermissionDenied();
+            return;
+          }
+          // Si los permisos están granted o prompt, intentar obtener ubicación
+          this.requestLocation();
+        })
+        .catch(() => {
+          // Si falla la consulta de permisos, intentar de todas formas
+          this.requestLocation();
+        });
+    } else {
+      // Si el navegador no soporta Permissions API, intentar directamente
+      this.requestLocation();
+    }
+  }
+
+  /**
+   * Solicita la ubicación usando el servicio de geolocalización
+   * Usa getStaticLocation() para mejor compatibilidad con caché
+   */
+  private requestLocation() {
+    this.geolocationService.getStaticLocation().subscribe({
       next: (location: LocationCoordinates) => {
         console.log('✅ Ubicación obtenida:', location);
         this.userLocation = location;
         this.updateMapWithUserLocation(location);
         this.calculateDistances();
         this.isLoadingLocation = false;
+        this.successMessage = 'Ubicación detectada correctamente';
+        setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error: any) => {
         console.warn('⚠️ No se pudo obtener la ubicación del usuario:', error);
         this.isLoadingLocation = false;
         
-        // No mostrar mensaje de error al usuario, la ubicación es opcional
-        // El mapa seguirá funcionando con la vista por defecto
-        console.info('ℹ️ El mapa continuará sin la ubicación del usuario');
+        // Si el error es por permisos denegados (code 1), manejar especialmente
+        if (error.code === 1) {
+          this.handlePermissionDenied();
+        } else {
+          // Para otros errores, continuar sin ubicación
+          console.info('ℹ️ El mapa continuará sin la ubicación del usuario');
+        }
       }
     });
+  }
+
+  /**
+   * Maneja el caso cuando los permisos de ubicación son denegados
+   * Muestra un mensaje al usuario y redirige a home después de 4 segundos
+   */
+  private handlePermissionDenied() {
+    this.isLoadingLocation = false;
+    this.errorMessage = 'No tienes permisos de ubicación habilitados. Por favor habilítalos en la configuración de tu navegador. Redirigiendo...';
+    
+    // Redirigir automáticamente después de 4 segundos
+    setTimeout(() => {
+      this.router.navigate(['/home']);
+    }, 4000);
   }
 
   /**
@@ -140,37 +181,38 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
       // Centrar el mapa en la ubicación del usuario
       this.mapService.centerMap('browse-resources-map', location, 14);
       
-      console.log('✅ Marcador de usuario agregado al mapa');
+      console.log('✅ Mapa actualizado con ubicación del usuario');
     } catch (error) {
-      console.error('Error agregando marcador de usuario:', error);
+      console.error('Error actualizando mapa con ubicación:', error);
     }
   }
 
   /**
    * Carga los recursos disponibles desde el backend
-   * Si hay error de conexión, carga datos de prueba
+   * Si no hay conexión, utiliza datos de prueba
    */
   loadResources() {
     this.isLoading = true;
-    this.errorMessage = '';
-
+    
     this.resourceService.getAvailableResources().subscribe({
       next: (resources: Resource[]) => {
         this.allResources = resources;
-        this.filteredResources = resources;
+        this.filteredResources = this.allResources;
         this.calculateDistances();
         this.updateMapMarkers();
         this.isLoading = false;
+        
+        console.log(`✅ ${resources.length} recursos cargados desde el servidor`);
       },
       error: (error: any) => {
         console.error('Error cargando recursos:', error);
-        this.isLoading = false;
         
         if (error.status === 0) {
-          console.warn('⚠️ Backend no disponible, cargando datos de prueba');
+          console.warn('⚠️ Sin conexión al servidor, usando datos de prueba');
           this.loadMockData();
         } else {
-          this.errorMessage = 'Error al cargar los recursos';
+          this.isLoading = false;
+          this.errorMessage = 'Error al cargar los recursos. Intenta de nuevo.';
         }
       }
     });
@@ -184,27 +226,27 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
       {
         id: 1,
         title: 'Ropa de Invierno',
-        description: 'Chaquetas y abrigos en buen estado para adultos',
+        description: 'Chaquetas, pantalones y bufandas en muy buen estado',
         category: ResourceCategory.CLOTHING,
         status: ResourceStatus.AVAILABLE,
-        donorId: 2,
-        donorName: 'María López',
-        latitude: -2.1850979,
-        longitude: -79.9323592,
-        address: 'Norte de Guayaquil',
-        createdAt: new Date('2024-01-12')
+        donorId: 1,
+        donorName: 'María García',
+        latitude: -2.1709979,
+        longitude: -79.9223592,
+        address: 'Urdesa Central',
+        createdAt: new Date('2024-01-15')
       },
       {
         id: 2,
-        title: 'Libros de Cocina',
-        description: 'Colección de 5 libros de recetas internacionales',
-        category: ResourceCategory.BOOKS,
+        title: 'Alimentos No Perecibles',
+        description: 'Arroz, fideo, aceite y enlatados',
+        category: ResourceCategory.FOOD,
         status: ResourceStatus.AVAILABLE,
-        donorId: 3,
+        donorId: 2,
         donorName: 'Carlos Mendoza',
         latitude: -2.1609979,
-        longitude: -79.9123592,
-        address: 'Urdesa',
+        longitude: -79.9323592,
+        address: 'Centenario',
         createdAt: new Date('2024-01-11')
       },
       {
@@ -338,17 +380,29 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
       ? `\nDistancia: ${(resource as ResourceWithDistance).distance!.toFixed(2)} km` 
       : '';
     
-    alert(`Detalle del Recurso:\n\nTítulo: ${resource.title}\nCategoría: ${this.getCategoryLabel(resource.category)}\nDescripción: ${resource.description}\nDonante: ${resource.donorName}\nUbicación: ${resource.address || 'No especificada'}${distanceText}`);
+    alert(
+      `${resource.title}\n\n` +
+      `Categoría: ${this.getCategoryLabel(resource.category)}\n` +
+      `Descripción: ${resource.description}\n` +
+      `Donante: ${resource.donorName}\n` +
+      `Ubicación: ${resource.address}${distanceText}`
+    );
   }
 
   /**
-   * Reclama un recurso para el usuario actual
+   * Permite al receptor reclamar un recurso
    * Envía la solicitud al backend y actualiza la lista
    */
   claimResource(resource: Resource, event: Event) {
     event.stopPropagation();
     
-    if (confirm(`¿Deseas reclamar "${resource.title}"?\n\nEl donante será notificado de tu solicitud.`)) {
+    const confirmClaim = confirm(
+      `¿Deseas reclamar "${resource.title}"?\n\n` +
+      `Donante: ${resource.donorName}\n` +
+      `Ubicación: ${resource.address}`
+    );
+    
+    if (confirmClaim) {
       this.resourceService.claimResource(resource.id).subscribe({
         next: (response: any) => {
           this.successMessage = `Has reclamado "${resource.title}" exitosamente`;
@@ -378,47 +432,25 @@ export class BrowseResourcesComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Obtiene la etiqueta legible de una categoría
+   */
+  getCategoryLabel(category: ResourceCategory): string {
+    const cat = this.categories.find(c => c.value === category);
+    return cat ? cat.label : 'Otro';
+  }
+
+  /**
+   * Obtiene el icono de una categoría
+   */
+  getCategoryIcon(category: ResourceCategory): string {
+    const cat = this.categories.find(c => c.value === category);
+    return cat ? cat.icon : 'bi-box';
+  }
+
+  /**
    * Navega de regreso a la página principal
    */
   goBack() {
     this.router.navigate(['/home']);
-  }
-
-  /**
-   * Obtiene el icono de Bootstrap Icons según la categoría
-   */
-  getCategoryIcon(category: string): string {
-    const icons: { [key: string]: string } = {
-      CLOTHING: 'bi-bag',
-      FOOD: 'bi-basket',
-      TOOLS: 'bi-wrench',
-      TOYS: 'bi-balloon',
-      FURNITURE: 'bi-house',
-      ELECTRONICS: 'bi-laptop',
-      BOOKS: 'bi-book',
-      HYGIENE: 'bi-droplet',
-      SCHOOL_SUPPLIES: 'bi-pencil',
-      OTHERS: 'bi-box'
-    };
-    return icons[category] || 'bi-box';
-  }
-
-  /**
-   * Obtiene la etiqueta en español de la categoría
-   */
-  getCategoryLabel(category: string): string {
-    const labels: { [key: string]: string } = {
-      CLOTHING: 'Ropa',
-      FOOD: 'Alimentos',
-      TOOLS: 'Herramientas',
-      TOYS: 'Juguetes',
-      FURNITURE: 'Muebles',
-      ELECTRONICS: 'Electrónicos',
-      BOOKS: 'Libros',
-      HYGIENE: 'Higiene',
-      SCHOOL_SUPPLIES: 'Útiles Escolares',
-      OTHERS: 'Otros'
-    };
-    return labels[category] || category;
   }
 }
