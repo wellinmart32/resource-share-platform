@@ -25,6 +25,8 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
+  private isSubmitting = false;
+
   categories = [
     { value: ResourceCategory.CLOTHING, label: 'Ropa', icon: 'bi-bag' },
     { value: ResourceCategory.FOOD, label: 'Alimentos', icon: 'bi-basket' },
@@ -50,7 +52,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     private mapService: MapService,
     private router: Router
   ) {
-    // Inicialización del formulario con validaciones
     this.resourceForm = this.formBuilder.group({
       title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
@@ -60,7 +61,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Pequeño delay para asegurar que el DOM esté listo antes de inicializar el mapa
     setTimeout(() => {
       this.initMap();
       this.getCurrentLocation();
@@ -68,7 +68,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Limpieza: destruir el mapa al salir del componente
     if (this.map) {
       this.mapService.destroyMap('publish-resource-map');
     }
@@ -87,7 +86,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
 
     if (this.map) {
       this.mapInitialized = true;
-      // Escuchar clics en el mapa para seleccionar ubicación
       this.map.on('click', (e: L.LeafletMouseEvent) => {
         this.onMapClick(e);
       });
@@ -103,24 +101,19 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     this.isLoadingLocation = true;
     this.errorMessage = '';
 
-    // Verificar si el navegador soporta Permissions API
     if ('permissions' in navigator) {
       navigator.permissions.query({ name: 'geolocation' as PermissionName })
         .then(result => {
-          // Si los permisos están denegados, manejar el caso especial
           if (result.state === 'denied') {
             this.handlePermissionDenied();
             return;
           }
-          // Si los permisos están granted o prompt, intentar obtener ubicación
           this.requestLocation();
         })
         .catch(() => {
-          // Si falla la consulta de permisos, intentar de todas formas
           this.requestLocation();
         });
     } else {
-      // Si el navegador no soporta Permissions API, intentar directamente
       this.requestLocation();
     }
   }
@@ -143,11 +136,9 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
         console.error('Error obteniendo ubicación:', error);
         this.isLoadingLocation = false;
         
-        // Si el error es por permisos denegados (code 1), manejar especialmente
         if (error.code === 1) {
           this.handlePermissionDenied();
         } else {
-          // Para otros errores, mostrar mensaje pero permitir selección manual
           this.errorMessage = 'No se pudo obtener tu ubicación. Selecciona una ubicación en el mapa.';
         }
       }
@@ -162,7 +153,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
     this.isLoadingLocation = false;
     this.errorMessage = 'No tienes permisos de ubicación habilitados. Por favor habilítalos en la configuración de tu navegador. Redirigiendo...';
     
-    // Redirigir automáticamente después de 4 segundos
     setTimeout(() => {
       this.router.navigate(['/home']);
     }, 4000);
@@ -190,12 +180,10 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   updateMapLocation(location: LocationCoordinates) {
     if (!this.map) return;
 
-    // Eliminar marcador anterior si existe
     if (this.locationMarker) {
       this.mapService.removeMarker('publish-resource-map', 'location');
     }
 
-    // Crear nuevo marcador en la ubicación seleccionada
     this.locationMarker = this.mapService.addMarker('publish-resource-map', 'location', {
       coordinates: [location.latitude, location.longitude],
       title: 'Ubicación del recurso',
@@ -203,7 +191,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       draggable: true
     });
 
-    // Escuchar cuando el usuario arrastra el marcador
     if (this.locationMarker) {
       this.locationMarker.on('dragend', () => {
         const position = this.locationMarker!.getLatLng();
@@ -214,34 +201,38 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Centrar el mapa en la nueva ubicación
     this.mapService.centerMap('publish-resource-map', location, 15);
   }
 
   /**
    * Procesa el envío del formulario y publica el recurso
    * Valida que todos los campos requeridos estén completos
-   * Valida que se haya seleccionado una ubicación en el mapa
+   * Previene múltiples envíos simultáneos con bandera isSubmitting
    */
   onSubmit() {
-    // Validar formulario
+    // Prevenir envíos múltiples
+    if (this.isSubmitting) {
+      console.warn('⚠️ Ya hay un envío en proceso, ignorando...');
+      return;
+    }
+
     if (this.resourceForm.invalid) {
       this.markFormGroupTouched(this.resourceForm);
       this.errorMessage = 'Por favor completa todos los campos requeridos';
       return;
     }
 
-    // Validar que se haya seleccionado ubicación
     if (!this.currentLocation) {
       this.errorMessage = 'Por favor selecciona una ubicación en el mapa';
       return;
     }
 
+    // Activar banderas de bloqueo
+    this.isSubmitting = true;
     this.isLoading = true;
     this.errorMessage = '';
     this.successMessage = '';
 
-    // Preparar datos del recurso
     const resourceRequest: ResourceRequest = {
       title: this.resourceForm.value.title,
       description: this.resourceForm.value.description,
@@ -251,22 +242,25 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       address: this.resourceForm.value.address
     };
 
-    // Enviar recurso al backend
+    console.log('📤 Enviando recurso al backend...');
+
     this.resourceService.publishResource(resourceRequest).subscribe({
       next: (response: any) => {
+        console.log('✅ Recurso publicado exitosamente');
         this.isLoading = false;
         this.successMessage = 'Recurso publicado exitosamente';
         
-        // Redirigir a "Mis Donaciones" después de 2 segundos
         setTimeout(() => {
-          this.router.navigate(['/donor/my-donations']);
+          this.router.navigate(['/donor/my-donations'], {
+            state: { reload: true, message: 'Recurso publicado exitosamente' }
+          });
         }, 2000);
       },
       error: (error: any) => {
-        console.error('Error publicando recurso:', error);
+        console.error('❌ Error publicando recurso:', error);
         this.isLoading = false;
+        this.isSubmitting = false;
         
-        // Manejo de errores según el código de respuesta
         if (error.status === 0) {
           this.errorMessage = 'No se pudo conectar al servidor. Usando datos de prueba...';
           setTimeout(() => {

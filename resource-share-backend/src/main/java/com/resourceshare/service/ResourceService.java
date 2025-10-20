@@ -146,6 +146,37 @@ public class ResourceService {
         Resource updatedResource = resourceRepository.save(resource);
         return mapToResponse(updatedResource);
     }
+    
+    /**
+     * Cancela un recurso (solo DONOR que lo publicó)
+     * Solo se pueden cancelar recursos en estado AVAILABLE o CLAIMED
+     */
+    @Transactional
+    public ResourceResponse cancelResource(Long resourceId, String donorEmail) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Recurso no encontrado"));
+
+        User donor = userRepository.findByEmail(donorEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("Donante no encontrado"));
+
+        // Verificar que el recurso pertenece al donante que intenta cancelarlo
+        if (!resource.getDonor().getId().equals(donor.getId())) {
+            throw new RuntimeException("No tienes permiso para cancelar este recurso");
+        }
+
+        // Solo se pueden cancelar recursos AVAILABLE o CLAIMED
+        if (resource.getStatus() != ResourceStatus.AVAILABLE && 
+            resource.getStatus() != ResourceStatus.CLAIMED) {
+            throw new RuntimeException("No se puede cancelar un recurso en estado " + resource.getStatus());
+        }
+
+        // Cambiar estado a CANCELLED
+        resource.setStatus(ResourceStatus.CANCELLED);
+        resource.setDeliveredAt(LocalDateTime.now()); // Usar este campo para la fecha de cancelación
+
+        Resource updatedResource = resourceRepository.save(resource);
+        return mapToResponse(updatedResource);
+    }
 
     /**
      * Convierte una entidad Resource a ResourceResponse DTO

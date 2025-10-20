@@ -124,6 +124,25 @@ public class ResourceController {
                     .body(new ErrorResponse(e.getMessage()));
         }
     }
+    
+    /**
+     * DELETE /api/resources/{id}/cancel
+     * Cancela un recurso publicado (solo DONOR que lo publicó)
+     * Solo se pueden cancelar recursos AVAILABLE o CLAIMED
+     */
+    @DeleteMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelResource(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String donorEmail = authentication.getName();
+            ResourceResponse response = resourceService.cancelResource(id, donorEmail);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
+        }
+    }
 
     /**
      * Clase interna para respuestas de error

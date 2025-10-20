@@ -16,18 +16,15 @@ import { ResourceCategory } from '../../core/enums/resource-category.enum';
 })
 export class MyDonationsComponent implements OnInit {
 
-  // Listas de recursos
   allResources: Resource[] = [];
   filteredResources: Resource[] = [];
   
-  // Estados de carga
   isLoading = true;
   errorMessage = '';
+  successMessage = '';
 
-  // Filtro seleccionado
   selectedFilter: ResourceStatus | 'ALL' = 'ALL';
   
-  // Configuración de filtros con contadores
   filters: { value: ResourceStatus | 'ALL', label: string, count: number, class: string }[] = [
     { value: 'ALL', label: 'Todas', count: 0, class: 'btn-outline-primary' },
     { value: ResourceStatus.AVAILABLE, label: 'Disponibles', count: 0, class: 'btn-outline-success' },
@@ -39,7 +36,19 @@ export class MyDonationsComponent implements OnInit {
   constructor(
     private resourceService: ResourceService,
     private router: Router
-  ) {}
+  ) {
+    // Detectar si venimos de publicar un recurso
+    const navigation = this.router.getCurrentNavigation();
+    const state = navigation?.extras.state as { reload?: boolean; message?: string };
+    
+    if (state?.reload) {
+      console.log('🔄 Detectado reload desde publicación de recurso');
+      if (state.message) {
+        this.successMessage = state.message;
+        setTimeout(() => this.successMessage = '', 4000);
+      }
+    }
+  }
 
   ngOnInit() {
     this.loadDonations();
@@ -90,56 +99,38 @@ export class MyDonationsComponent implements OnInit {
         latitude: -2.1709979,
         longitude: -79.9223592,
         address: 'Norte de Guayaquil',
-        createdAt: new Date('2024-01-12')
+        createdAt: new Date('2024-01-15')
       },
       {
         id: 2,
-        title: 'Juguetes Didácticos',
-        description: 'Set completo de bloques de construcción',
+        title: 'Juguetes Educativos',
+        description: 'Set de bloques y rompecabezas para niños de 3 a 7 años',
         category: ResourceCategory.TOYS,
         status: ResourceStatus.CLAIMED,
         donorId: 1,
         donorName: 'Usuario Actual',
+        receiverName: 'Pedro González',
         latitude: -2.1609979,
-        longitude: -79.9123592,
-        address: 'Urdesa',
-        receiverId: 3,
-        receiverName: 'Ana Pérez',
-        claimedAt: new Date('2024-01-11'),
-        createdAt: new Date('2024-01-10')
+        longitude: -79.9323592,
+        address: 'Sur de Guayaquil',
+        createdAt: new Date('2024-01-10'),
+        claimedAt: new Date('2024-01-12')
       },
       {
         id: 3,
-        title: 'Mesa de Comedor',
-        description: 'Mesa de madera con 4 sillas',
-        category: ResourceCategory.FURNITURE,
-        status: ResourceStatus.IN_TRANSIT,
-        donorId: 1,
-        donorName: 'Usuario Actual',
-        latitude: -2.1750979,
-        longitude: -79.9423592,
-        address: 'Kennedy',
-        receiverId: 4,
-        receiverName: 'Luis Torres',
-        claimedAt: new Date('2024-01-10'),
-        createdAt: new Date('2024-01-09')
-      },
-      {
-        id: 4,
-        title: 'Libros de Cocina',
-        description: 'Colección de 5 libros de recetas',
-        category: ResourceCategory.BOOKS,
+        title: 'Alimentos No Perecibles',
+        description: 'Arroz, fideos, aceite y enlatados varios',
+        category: ResourceCategory.FOOD,
         status: ResourceStatus.DELIVERED,
         donorId: 1,
         donorName: 'Usuario Actual',
-        latitude: -2.1550979,
-        longitude: -79.9523592,
-        address: 'Alborada',
-        receiverId: 5,
-        receiverName: 'María González',
-        claimedAt: new Date('2024-01-08'),
-        deliveredAt: new Date('2024-01-10'),
-        createdAt: new Date('2024-01-07')
+        receiverName: 'María López',
+        latitude: -2.1809979,
+        longitude: -79.9123592,
+        address: 'Centro de Guayaquil',
+        createdAt: new Date('2024-01-05'),
+        claimedAt: new Date('2024-01-06'),
+        deliveredAt: new Date('2024-01-08')
       }
     ];
     
@@ -199,7 +190,14 @@ export class MyDonationsComponent implements OnInit {
       ? `\nEntregado: ${this.formatDate(resource.deliveredAt)}` 
       : '';
     
-    alert(`Detalle de la Donación:\n\nTítulo: ${resource.title}\nCategoría: ${this.getCategoryLabel(resource.category)}\nEstado: ${this.getStatusText(resource.status)}\nDescripción: ${resource.description}\nUbicación: ${resource.address || 'No especificada'}${receiverInfo}${deliveryInfo}`);
+    alert(
+      `Detalle de la Donación:\n\n` +
+      `Título: ${resource.title}\n` +
+      `Categoría: ${this.getCategoryLabel(resource.category)}\n` +
+      `Estado: ${this.getStatusText(resource.status)}\n` +
+      `Descripción: ${resource.description}\n` +
+      `Ubicación: ${resource.address || 'No especificada'}${receiverInfo}${deliveryInfo}`
+    );
   }
 
   /**
@@ -210,9 +208,34 @@ export class MyDonationsComponent implements OnInit {
     event.stopPropagation();
     
     if (confirm(`¿Estás seguro de cancelar la donación "${resource.title}"?\n\nEsta acción no se puede deshacer.`)) {
-      console.log('Cancelando recurso:', resource.id);
-      // TODO: Implementar llamada al backend cuando esté disponible
-      alert('La funcionalidad de cancelar será implementada próximamente');
+      this.resourceService.cancelResource(resource.id).subscribe({
+        next: (response: any) => {
+          this.successMessage = `La donación "${resource.title}" ha sido cancelada exitosamente`;
+          this.loadDonations();
+          
+          setTimeout(() => {
+            this.successMessage = '';
+          }, 3000);
+        },
+        error: (error: any) => {
+          console.error('Error cancelando recurso:', error);
+          
+          if (error.status === 0) {
+            this.successMessage = `Donación cancelada (modo demo)`;
+            this.allResources = this.allResources.filter(r => r.id !== resource.id);
+            this.filterByStatus(this.selectedFilter);
+            this.updateFilterCounts();
+            
+            setTimeout(() => {
+              this.successMessage = '';
+            }, 3000);
+          } else if (error.status === 400) {
+            this.errorMessage = error.error.message || 'No se puede cancelar este recurso';
+          } else {
+            this.errorMessage = 'Error al cancelar la donación. Intenta de nuevo';
+          }
+        }
+      });
     }
   }
 

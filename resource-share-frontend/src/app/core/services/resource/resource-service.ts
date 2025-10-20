@@ -131,4 +131,21 @@ export class ResourceService {
         })
       );
   }
+
+  /**
+   * Cancelar un recurso (solo DONOR que lo publicó)
+   * El recurso cambia a status CANCELLED
+   */
+  cancelResource(resourceId: number): Observable<Resource> {
+    return this.http.delete<Resource>(`${this.API_URL}/${resourceId}/cancel`)
+      .pipe(
+        tap(response => {
+          console.log('Recurso cancelado:', response.id);
+        }),
+        catchError(error => {
+          console.error('Error cancelando recurso:', error);
+          return throwError(() => error);
+        })
+      );
+  }
 }
