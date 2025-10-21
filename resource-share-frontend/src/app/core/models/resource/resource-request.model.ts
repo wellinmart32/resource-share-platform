@@ -1,4 +1,3 @@
- 
 import { ResourceCategory } from '../../enums/resource-category.enum';
 
 /**
@@ -15,6 +14,9 @@ export interface ResourceRequest {
   longitude: number;
   address?: string;
   
-  // Imagen del recurso (opcional, se envía como base64 o URL)
+  // Imagen del recurso (opcional)
   imageUrl?: string;
+  
+  // Configuración de confirmación (manual por defecto)
+  autoConfirm?: boolean;
 }

@@ -111,8 +111,9 @@ public class ResourceController {
     /**
      * POST /api/resources/{id}/claim
      * Reclama un recurso disponible (solo RECEIVER)
-     * Cambia el estado del recurso de AVAILABLE a CLAIMED
-     * Asigna el receptor al recurso y registra la fecha de reclamación
+     * Cambia el estado del recurso según configuración:
+     * - Si autoConfirm = true: pasa directo a IN_TRANSIT
+     * - Si autoConfirm = false: pasa a CLAIMED
      */
     @PostMapping("/{id}/claim")
     public ResponseEntity<?> claimResource(
@@ -132,7 +133,7 @@ public class ResourceController {
      * PUT /api/resources/{id}/confirm-pickup
      * Confirma el encuentro entre donante y receptor (solo DONOR)
      * Cambia el estado del recurso de CLAIMED a IN_TRANSIT
-     * Solo el donante que publicó el recurso puede confirmar
+     * Solo aplica para recursos con confirmación manual
      */
     @PutMapping("/{id}/confirm-pickup")
     public ResponseEntity<?> confirmPickup(
@@ -141,6 +142,26 @@ public class ResourceController {
         try {
             String donorEmail = authentication.getName();
             ResourceResponse response = resourceService.confirmPickup(id, donorEmail);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * PUT /api/resources/{id}/toggle-auto-confirm
+     * Cambia el modo de confirmación de un recurso (solo DONOR que lo publicó)
+     * Permite activar/desactivar la confirmación automática
+     * Solo se puede cambiar si el recurso está en estado AVAILABLE
+     */
+    @PutMapping("/{id}/toggle-auto-confirm")
+    public ResponseEntity<?> toggleAutoConfirm(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String donorEmail = authentication.getName();
+            ResourceResponse response = resourceService.toggleAutoConfirm(id, donorEmail);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -7,7 +7,7 @@ import { ResourceService } from '../../core/services/resource/resource-service';
 import { GeolocationService, LocationCoordinates } from '../../core/services/geolocation/geolocation-service';
 import { MapService } from '../../core/services/map/map-service';
 import { ResourceRequest } from '../../core/models/resource/resource-request.model';
-import { ResourceCategory } from '../../core/enums/resource-category.enum';
+import { ResourceCategory } from 'src/app/core/enums/resource-category.enum';
 import * as L from 'leaflet';
 
 @Component({
@@ -56,7 +56,8 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
       category: [ResourceCategory.OTHERS, Validators.required],
-      address: ['']
+      address: [''],
+      autoConfirm: [false]
     });
   }
 
@@ -74,8 +75,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Inicializa el mapa de Leaflet en el contenedor especificado
-   * Configura el centro en Guayaquil y habilita eventos de clic
+   * Inicializa el mapa centrado en Guayaquil
    */
   initMap() {
     this.map = this.mapService.initMap({
@@ -86,68 +86,44 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
 
     if (this.map) {
       this.mapInitialized = true;
-      this.map.on('click', (e: L.LeafletMouseEvent) => {
-        this.onMapClick(e);
-      });
+      this.map.on('click', (e: L.LeafletMouseEvent) => this.onMapClick(e));
     }
   }
 
   /**
-   * Obtiene la ubicación actual del usuario usando el GPS del dispositivo
-   * Verifica permisos antes de solicitar ubicación
-   * Si no hay permisos, muestra mensaje y redirige a home
+   * Obtiene la ubicación actual del usuario
    */
   getCurrentLocation() {
     this.isLoadingLocation = true;
     this.errorMessage = '';
 
-    if ('permissions' in navigator) {
-      navigator.permissions.query({ name: 'geolocation' as PermissionName })
-        .then(result => {
-          if (result.state === 'denied') {
-            this.handlePermissionDenied();
-            return;
-          }
-          this.requestLocation();
-        })
-        .catch(() => {
-          this.requestLocation();
-        });
-    } else {
-      this.requestLocation();
-    }
-  }
-
-  /**
-   * Solicita la ubicación usando el servicio de geolocalización
-   * Usa getStaticLocation() para mejor compatibilidad con caché
-   */
-  private requestLocation() {
-    this.geolocationService.getStaticLocation().subscribe({
-      next: (location: LocationCoordinates) => {
-        console.log('✅ Ubicación del donante obtenida:', location);
-        this.currentLocation = location;
-        this.updateMapLocation(location);
-        this.isLoadingLocation = false;
-        this.successMessage = 'Ubicación detectada correctamente';
-        setTimeout(() => this.successMessage = '', 3000);
-      },
-      error: (error: any) => {
-        console.error('Error obteniendo ubicación:', error);
-        this.isLoadingLocation = false;
-        
-        if (error.code === 1) {
+    this.geolocationService.checkPermissions().subscribe({
+      next: (hasPermission) => {
+        if (!hasPermission) {
           this.handlePermissionDenied();
-        } else {
-          this.errorMessage = 'No se pudo obtener tu ubicación. Selecciona una ubicación en el mapa.';
+          return;
         }
+
+        this.geolocationService.getStaticLocation().subscribe({
+          next: (coordinates: LocationCoordinates) => {
+            this.isLoadingLocation = false;
+            this.currentLocation = coordinates;
+            this.updateMapLocation(coordinates);
+          },
+          error: (geoError: any) => {
+            this.isLoadingLocation = false;
+            this.errorMessage = geoError.userMessage || 'No se pudo obtener tu ubicación. Selecciona una ubicación en el mapa.';
+          }
+        });
+      },
+      error: () => {
+        this.handlePermissionDenied();
       }
     });
   }
 
   /**
-   * Maneja el caso cuando los permisos de ubicación son denegados
-   * Muestra un mensaje al usuario y redirige a home después de 4 segundos
+   * Maneja permisos denegados
    */
   private handlePermissionDenied() {
     this.isLoadingLocation = false;
@@ -159,8 +135,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Maneja el evento de clic en el mapa
-   * Permite al usuario seleccionar manualmente la ubicación del recurso
+   * Maneja clic en el mapa
    */
   onMapClick(e: L.LeafletMouseEvent) {
     const location: LocationCoordinates = {
@@ -173,9 +148,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Actualiza el marcador en el mapa con la ubicación seleccionada
-   * Si ya existe un marcador, lo elimina y crea uno nuevo
-   * El marcador es arrastrable para ajustar la ubicación con precisión
+   * Actualiza el marcador en el mapa
    */
   updateMapLocation(location: LocationCoordinates) {
     if (!this.map) return;
@@ -205,14 +178,11 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Procesa el envío del formulario y publica el recurso
-   * Valida que todos los campos requeridos estén completos
-   * Previene múltiples envíos simultáneos con bandera isSubmitting
+   * Publica el recurso
    */
   onSubmit() {
-    // Prevenir envíos múltiples
     if (this.isSubmitting) {
-      console.warn('⚠️ Ya hay un envío en proceso, ignorando...');
+      console.warn('⚠️ Ya hay un envío en proceso');
       return;
     }
 
@@ -227,7 +197,6 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Activar banderas de bloqueo
     this.isSubmitting = true;
     this.isLoading = true;
     this.errorMessage = '';
@@ -239,7 +208,8 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
       category: this.resourceForm.value.category,
       latitude: this.currentLocation.latitude,
       longitude: this.currentLocation.longitude,
-      address: this.resourceForm.value.address
+      address: this.resourceForm.value.address,
+      autoConfirm: this.resourceForm.value.autoConfirm
     };
 
     console.log('📤 Enviando recurso al backend...');
@@ -274,8 +244,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Marca todos los campos del formulario como tocados
-   * Útil para mostrar errores de validación
+   * Marca todos los campos como tocados
    */
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.keys(formGroup.controls).forEach(key => {
@@ -289,7 +258,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Verifica si un campo tiene un error específico
+   * Verifica si un campo tiene error
    */
   hasError(fieldName: string, errorName: string): boolean {
     const field = this.resourceForm.get(fieldName);
@@ -297,7 +266,7 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Navega de regreso a la página anterior
+   * Navega de regreso
    */
   goBack() {
     this.router.navigate(['/home']);

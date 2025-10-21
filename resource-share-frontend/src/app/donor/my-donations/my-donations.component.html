@@ -30,6 +30,12 @@
       <div>{{ errorMessage }}</div>
     </div>
 
+    <!-- Mensaje de éxito -->
+    <div class="alert alert-success d-flex align-items-center mb-3" role="alert" *ngIf="successMessage">
+      <i class="bi bi-check-circle-fill me-2 icon-success"></i>
+      <div>{{ successMessage }}</div>
+    </div>
+
     <!-- Filtros por estado -->
     <div class="card shadow-soft mb-3">
       <div class="card-header text-white" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
@@ -141,6 +147,14 @@
               </small>
             </div>
 
+            <!-- Modo de confirmación (solo para disponibles) -->
+            <div *ngIf="resource.status === 'AVAILABLE'" class="d-flex align-items-center mb-2">
+              <i class="bi bi-check2-square text-info me-2"></i>
+              <small class="text-muted">
+                <strong>Modo:</strong> {{ resource.autoConfirm ? 'Automático' : 'Manual' }}
+              </small>
+            </div>
+
             <!-- Receptor (si existe) -->
             <div *ngIf="resource.receiverName" class="d-flex align-items-center mb-2">
               <i class="bi bi-person-check-fill text-success me-2"></i>
@@ -159,8 +173,31 @@
 
           </div>
 
-          <!-- Footer: Botón cancelar -->
-          <div class="card-footer bg-light border-top" *ngIf="canCancelResource(resource)">
+          <!-- Footer: Botones de acción -->
+          <div class="card-footer bg-light border-top" *ngIf="resource.status === 'AVAILABLE'">
+            <div class="d-grid gap-2">
+              <!-- Toggle auto-confirm -->
+              <button 
+                class="btn btn-sm fw-bold"
+                [class.btn-outline-primary]="!resource.autoConfirm"
+                [class.btn-outline-success]="resource.autoConfirm"
+                (click)="toggleAutoConfirm(resource, $event)">
+                <i [class]="resource.autoConfirm ? 'bi bi-toggle-on me-1' : 'bi bi-toggle-off me-1'"></i>
+                {{ resource.autoConfirm ? 'Modo Automático' : 'Modo Manual' }}
+              </button>
+              
+              <!-- Cancelar -->
+              <button 
+                class="btn btn-outline-danger btn-sm fw-bold"
+                (click)="cancelResource(resource, $event)">
+                <i class="bi bi-x-circle me-1"></i>
+                Cancelar Donación
+              </button>
+            </div>
+          </div>
+
+          <!-- Footer para recursos reclamados -->
+          <div class="card-footer bg-light border-top" *ngIf="resource.status === 'CLAIMED' && canCancelResource(resource)">
             <div class="d-grid">
               <button 
                 class="btn btn-outline-danger btn-sm fw-bold"

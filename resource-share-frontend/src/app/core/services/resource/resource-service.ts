@@ -3,8 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, throwError } from 'rxjs';
 import { Resource } from '../../models/resource/resource.model';
 import { ResourceRequest } from '../../models/resource/resource-request.model';
-import { ResourceStatus } from '../../enums/resource-status.enum';
-import { ResourceCategory } from '../../enums/resource-category.enum';
 
 /**
  * Servicio de gestión de recursos
@@ -20,7 +18,6 @@ export class ResourceService {
 
   /**
    * Publicar un nuevo recurso (solo DONOR)
-   * El recurso se crea con estado AVAILABLE
    */
   publishResource(resourceRequest: ResourceRequest): Observable<Resource> {
     return this.http.post<Resource>(`${this.API_URL}`, resourceRequest)
@@ -36,8 +33,7 @@ export class ResourceService {
   }
 
   /**
-   * Obtener todos los recursos disponibles (para RECEIVER)
-   * Solo muestra recursos con status AVAILABLE
+   * Obtener recursos disponibles (para RECEIVER)
    */
   getAvailableResources(): Observable<Resource[]> {
     return this.http.get<Resource[]>(`${this.API_URL}/available`)
@@ -50,51 +46,20 @@ export class ResourceService {
   }
 
   /**
-   * Obtener recursos por categoría
-   * Filtra recursos disponibles por una categoría específica
-   */
-  getResourcesByCategory(category: ResourceCategory): Observable<Resource[]> {
-    return this.http.get<Resource[]>(`${this.API_URL}/category/${category}`)
-      .pipe(
-        catchError(error => {
-          console.error('❌ Error obteniendo recursos por categoría:', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  /**
-   * Obtener un recurso específico por ID
-   * Retorna el detalle completo del recurso
-   */
-  getResourceById(id: number): Observable<Resource> {
-    return this.http.get<Resource>(`${this.API_URL}/${id}`)
-      .pipe(
-        catchError(error => {
-          console.error('❌ Error obteniendo recurso:', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  /**
-   * Obtener mis recursos como DONOR
-   * Devuelve todos los recursos que he publicado en cualquier estado
+   * Obtener mis donaciones (solo DONOR)
    */
   getMyDonorResources(): Observable<Resource[]> {
     return this.http.get<Resource[]>(`${this.API_URL}/my-donations`)
       .pipe(
         catchError(error => {
-          console.error('❌ Error obteniendo mis donaciones:', error);
+          console.error('❌ Error obteniendo donaciones:', error);
           return throwError(() => error);
         })
       );
   }
 
   /**
-   * Obtener recursos CLAIMED del donante actual
-   * Muestra recursos que fueron reclamados pero aún no confirmados
-   * Usado para que el donante vea quién reclamó sus recursos
+   * Obtener recursos reclamados del donante (solo DONOR)
    */
   getDonorClaimedResources(): Observable<Resource[]> {
     return this.http.get<Resource[]>(`${this.API_URL}/donor/claimed`)
@@ -110,8 +75,7 @@ export class ResourceService {
   }
 
   /**
-   * Obtener mis recursos como RECEIVER
-   * Devuelve los recursos que he reclamado en cualquier estado
+   * Obtener mis recursos recibidos (solo RECEIVER)
    */
   getMyReceivedResources(): Observable<Resource[]> {
     return this.http.get<Resource[]>(`${this.API_URL}/my-received`)
@@ -125,8 +89,7 @@ export class ResourceService {
 
   /**
    * Reclamar un recurso (solo RECEIVER)
-   * Cambia el estado de AVAILABLE a CLAIMED
-   * El recurso desaparece de la lista de disponibles para otros receptores
+   * Si autoConfirm=true pasa a IN_TRANSIT, si es false pasa a CLAIMED
    */
   claimResource(resourceId: number): Observable<Resource> {
     return this.http.post<Resource>(`${this.API_URL}/${resourceId}/claim`, null)
@@ -142,9 +105,8 @@ export class ResourceService {
   }
 
   /**
-   * Confirmar el encuentro entre donante y receptor (solo DONOR)
-   * Cambia el estado de CLAIMED a IN_TRANSIT
-   * Solo el donante que publicó el recurso puede confirmar
+   * Confirmar encuentro (solo DONOR)
+   * Cambia de CLAIMED a IN_TRANSIT
    */
   confirmPickup(resourceId: number): Observable<Resource> {
     return this.http.put<Resource>(`${this.API_URL}/${resourceId}/confirm-pickup`, null)
@@ -160,9 +122,25 @@ export class ResourceService {
   }
 
   /**
-   * Confirmar la entrega de un recurso (solo RECEIVER)
-   * Cambia el estado de IN_TRANSIT a DELIVERED
-   * Solo el receptor que reclamó el recurso puede confirmar
+   * Cambiar modo de confirmación (solo DONOR)
+   * Alterna entre manual y automático
+   */
+  toggleAutoConfirm(resourceId: number): Observable<Resource> {
+    return this.http.put<Resource>(`${this.API_URL}/${resourceId}/toggle-auto-confirm`, null)
+      .pipe(
+        tap(response => {
+          console.log('✅ Modo de confirmación cambiado:', response.id);
+        }),
+        catchError(error => {
+          console.error('❌ Error cambiando modo:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  /**
+   * Confirmar entrega (solo RECEIVER)
+   * Cambia de IN_TRANSIT a DELIVERED
    */
   confirmDelivery(resourceId: number): Observable<Resource> {
     return this.http.patch<Resource>(`${this.API_URL}/${resourceId}/deliver`, null)
@@ -178,9 +156,8 @@ export class ResourceService {
   }
 
   /**
-   * Cancelar un recurso (solo DONOR que lo publicó)
-   * Solo se pueden cancelar recursos en estado AVAILABLE o CLAIMED
-   * El recurso cambia a status CANCELLED
+   * Cancelar recurso (solo DONOR)
+   * Solo se pueden cancelar recursos AVAILABLE o CLAIMED
    */
   cancelResource(resourceId: number): Observable<Resource> {
     return this.http.delete<Resource>(`${this.API_URL}/${resourceId}/cancel`)

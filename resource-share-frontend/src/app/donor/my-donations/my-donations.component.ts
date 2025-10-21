@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { ResourceService } from '../../core/services/resource/resource-service';
-import { Resource } from '../../core/models/resource/resource.model';
-import { ResourceStatus } from '../../core/enums/resource-status.enum';
-import { ResourceCategory } from '../../core/enums/resource-category.enum';
+import { Resource } from 'src/app/core/models/resource/resource.model';
+import { ResourceStatus } from 'src/app/core/enums/resource-status.enum';
+import { ResourceCategory } from 'src/app/core/enums/resource-category.enum';
 
 @Component({
   selector: 'app-my-donations',
@@ -37,12 +37,11 @@ export class MyDonationsComponent implements OnInit {
     private resourceService: ResourceService,
     private router: Router
   ) {
-    // Detectar si venimos de publicar un recurso
     const navigation = this.router.getCurrentNavigation();
     const state = navigation?.extras.state as { reload?: boolean; message?: string };
     
     if (state?.reload) {
-      console.log('🔄 Detectado reload desde publicación de recurso');
+      console.log('🔄 Detectado reload desde publicación');
       if (state.message) {
         this.successMessage = state.message;
         setTimeout(() => this.successMessage = '', 4000);
@@ -55,8 +54,7 @@ export class MyDonationsComponent implements OnInit {
   }
 
   /**
-   * Carga las donaciones del usuario desde el backend
-   * Si hay error de conexión, carga datos de prueba
+   * Carga las donaciones del usuario
    */
   loadDonations() {
     this.isLoading = true;
@@ -84,14 +82,14 @@ export class MyDonationsComponent implements OnInit {
   }
 
   /**
-   * Carga datos de prueba cuando no hay conexión al backend
+   * Carga datos de prueba
    */
   private loadMockData() {
     this.allResources = [
       {
         id: 1,
         title: 'Ropa de Invierno',
-        description: 'Chaquetas y abrigos en buen estado para adultos',
+        description: 'Chaquetas y abrigos en buen estado',
         category: ResourceCategory.CLOTHING,
         status: ResourceStatus.AVAILABLE,
         donorId: 1,
@@ -99,38 +97,8 @@ export class MyDonationsComponent implements OnInit {
         latitude: -2.1709979,
         longitude: -79.9223592,
         address: 'Norte de Guayaquil',
+        autoConfirm: false,
         createdAt: new Date('2024-01-15')
-      },
-      {
-        id: 2,
-        title: 'Juguetes Educativos',
-        description: 'Set de bloques y rompecabezas para niños de 3 a 7 años',
-        category: ResourceCategory.TOYS,
-        status: ResourceStatus.CLAIMED,
-        donorId: 1,
-        donorName: 'Usuario Actual',
-        receiverName: 'Pedro González',
-        latitude: -2.1609979,
-        longitude: -79.9323592,
-        address: 'Sur de Guayaquil',
-        createdAt: new Date('2024-01-10'),
-        claimedAt: new Date('2024-01-12')
-      },
-      {
-        id: 3,
-        title: 'Alimentos No Perecibles',
-        description: 'Arroz, fideos, aceite y enlatados varios',
-        category: ResourceCategory.FOOD,
-        status: ResourceStatus.DELIVERED,
-        donorId: 1,
-        donorName: 'Usuario Actual',
-        receiverName: 'María López',
-        latitude: -2.1809979,
-        longitude: -79.9123592,
-        address: 'Centro de Guayaquil',
-        createdAt: new Date('2024-01-05'),
-        claimedAt: new Date('2024-01-06'),
-        deliveredAt: new Date('2024-01-08')
       }
     ];
     
@@ -140,7 +108,7 @@ export class MyDonationsComponent implements OnInit {
   }
 
   /**
-   * Actualiza los contadores de cada filtro según el estado de los recursos
+   * Actualiza contadores
    */
   private updateFilterCounts() {
     this.filters[0].count = this.allResources.length;
@@ -151,7 +119,7 @@ export class MyDonationsComponent implements OnInit {
   }
 
   /**
-   * Filtra los recursos según el estado seleccionado
+   * Filtra por estado
    */
   filterByStatus(status: ResourceStatus | 'ALL') {
     this.selectedFilter = status;
@@ -164,22 +132,68 @@ export class MyDonationsComponent implements OnInit {
   }
 
   /**
-   * Navega a la página para publicar un nuevo recurso
+   * Cambia el modo de confirmación del recurso
+   */
+  toggleAutoConfirm(resource: Resource, event: Event) {
+    event.stopPropagation();
+    
+    const newMode = !resource.autoConfirm ? 'Automático' : 'Manual';
+    const confirmAction = confirm(
+      `¿Cambiar a modo ${newMode}?\n\n` +
+      `Recurso: "${resource.title}"\n\n` +
+      (newMode === 'Automático' 
+        ? 'El recurso pasará directamente a "En Tránsito" cuando sea reclamado.' 
+        : 'Deberás confirmar manualmente cuando alguien reclame el recurso.')
+    );
+    
+    if (confirmAction) {
+      this.resourceService.toggleAutoConfirm(resource.id).subscribe({
+        next: (response: any) => {
+          resource.autoConfirm = !resource.autoConfirm;
+          this.successMessage = `Modo cambiado a ${newMode}`;
+          
+          setTimeout(() => {
+            this.successMessage = '';
+          }, 3000);
+        },
+        error: (error: any) => {
+          console.error('Error cambiando modo:', error);
+          
+          if (error.status === 0) {
+            resource.autoConfirm = !resource.autoConfirm;
+            this.successMessage = `Modo cambiado a ${newMode} (demo)`;
+            
+            setTimeout(() => {
+              this.successMessage = '';
+            }, 3000);
+          } else {
+            this.errorMessage = error.error?.message || 'Error al cambiar el modo';
+            
+            setTimeout(() => {
+              this.errorMessage = '';
+            }, 5000);
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Navega a publicar recurso
    */
   publishNewResource() {
     this.router.navigate(['/donor/publish-resource']);
   }
 
   /**
-   * Navega de regreso a la página principal
+   * Navega de regreso
    */
   goBack() {
     this.router.navigate(['/home']);
   }
 
   /**
-   * Muestra los detalles de un recurso en un alert
-   * En producción, esto podría abrir un modal o página de detalles
+   * Muestra detalles del recurso
    */
   viewResourceDetail(resource: Resource) {
     const receiverInfo = resource.receiverName 
@@ -190,19 +204,20 @@ export class MyDonationsComponent implements OnInit {
       ? `\nEntregado: ${this.formatDate(resource.deliveredAt)}` 
       : '';
     
+    const autoConfirmInfo = `\nModo: ${resource.autoConfirm ? 'Automático' : 'Manual'}`;
+    
     alert(
       `Detalle de la Donación:\n\n` +
       `Título: ${resource.title}\n` +
       `Categoría: ${this.getCategoryLabel(resource.category)}\n` +
-      `Estado: ${this.getStatusText(resource.status)}\n` +
+      `Estado: ${this.getStatusText(resource.status)}${autoConfirmInfo}\n` +
       `Descripción: ${resource.description}\n` +
       `Ubicación: ${resource.address || 'No especificada'}${receiverInfo}${deliveryInfo}`
     );
   }
 
   /**
-   * Cancela una donación que aún no ha sido reclamada
-   * Envía la solicitud al backend y actualiza la lista
+   * Cancela un recurso
    */
   cancelResource(resource: Resource, event: Event) {
     event.stopPropagation();
@@ -210,7 +225,7 @@ export class MyDonationsComponent implements OnInit {
     if (confirm(`¿Estás seguro de cancelar la donación "${resource.title}"?\n\nEsta acción no se puede deshacer.`)) {
       this.resourceService.cancelResource(resource.id).subscribe({
         next: (response: any) => {
-          this.successMessage = `La donación "${resource.title}" ha sido cancelada exitosamente`;
+          this.successMessage = `La donación "${resource.title}" ha sido cancelada`;
           this.loadDonations();
           
           setTimeout(() => {
@@ -232,16 +247,19 @@ export class MyDonationsComponent implements OnInit {
           } else if (error.status === 400) {
             this.errorMessage = error.error.message || 'No se puede cancelar este recurso';
           } else {
-            this.errorMessage = 'Error al cancelar la donación. Intenta de nuevo';
+            this.errorMessage = 'Error al cancelar la donación';
           }
+          
+          setTimeout(() => {
+            this.errorMessage = '';
+          }, 5000);
         }
       });
     }
   }
 
   /**
-   * Verifica si un recurso puede ser cancelado
-   * Solo se pueden cancelar recursos disponibles o reclamados
+   * Verifica si se puede cancelar
    */
   canCancelResource(resource: Resource): boolean {
     return resource.status === ResourceStatus.AVAILABLE || 
@@ -249,89 +267,77 @@ export class MyDonationsComponent implements OnInit {
   }
 
   /**
-   * Obtiene la clase CSS del badge según el estado del recurso
-   */
-  getStatusBadgeClass(status: ResourceStatus): string {
-    switch (status) {
-      case ResourceStatus.AVAILABLE:
-        return 'bg-success';
-      case ResourceStatus.CLAIMED:
-        return 'bg-warning text-dark';
-      case ResourceStatus.IN_TRANSIT:
-        return 'bg-info';
-      case ResourceStatus.DELIVERED:
-        return 'bg-secondary';
-      case ResourceStatus.CANCELLED:
-        return 'bg-danger';
-      default:
-        return 'bg-secondary';
-    }
-  }
-
-  /**
-   * Obtiene el texto en español para mostrar el estado del recurso
+   * Obtiene texto del estado
    */
   getStatusText(status: ResourceStatus): string {
-    switch (status) {
-      case ResourceStatus.AVAILABLE:
-        return 'Disponible';
-      case ResourceStatus.CLAIMED:
-        return 'Reclamado';
-      case ResourceStatus.IN_TRANSIT:
-        return 'En Tránsito';
-      case ResourceStatus.DELIVERED:
-        return 'Entregado';
-      case ResourceStatus.CANCELLED:
-        return 'Cancelado';
-      default:
-        return status;
-    }
-  }
-
-  /**
-   * Obtiene el icono de Bootstrap Icons según la categoría del recurso
-   */
-  getCategoryIcon(category: string): string {
-    const icons: { [key: string]: string } = {
-      CLOTHING: 'bi-bag',
-      FOOD: 'bi-basket',
-      TOOLS: 'bi-wrench',
-      TOYS: 'bi-balloon',
-      FURNITURE: 'bi-house',
-      ELECTRONICS: 'bi-laptop',
-      BOOKS: 'bi-book',
-      HYGIENE: 'bi-droplet',
-      SCHOOL_SUPPLIES: 'bi-pencil',
-      OTHERS: 'bi-box'
+    const statusMap: { [key: string]: string } = {
+      'AVAILABLE': 'Disponible',
+      'CLAIMED': 'Reclamado',
+      'IN_TRANSIT': 'En Tránsito',
+      'DELIVERED': 'Entregado',
+      'CANCELLED': 'Cancelado'
     };
-    return icons[category] || 'bi-box';
+    return statusMap[status] || status;
   }
 
   /**
-   * Obtiene la etiqueta en español de la categoría
+   * Obtiene label de categoría
    */
-  getCategoryLabel(category: string): string {
-    const labels: { [key: string]: string } = {
-      CLOTHING: 'Ropa',
-      FOOD: 'Alimentos',
-      TOOLS: 'Herramientas',
-      TOYS: 'Juguetes',
-      FURNITURE: 'Muebles',
-      ELECTRONICS: 'Electrónicos',
-      BOOKS: 'Libros',
-      HYGIENE: 'Higiene',
-      SCHOOL_SUPPLIES: 'Útiles Escolares',
-      OTHERS: 'Otros'
+  getCategoryLabel(category: ResourceCategory): string {
+    const categoryMap: { [key: string]: string } = {
+      'CLOTHING': 'Ropa',
+      'FOOD': 'Alimentos',
+      'TOOLS': 'Herramientas',
+      'TOYS': 'Juguetes',
+      'FURNITURE': 'Muebles',
+      'ELECTRONICS': 'Electrónicos',
+      'BOOKS': 'Libros',
+      'HYGIENE': 'Higiene',
+      'SCHOOL_SUPPLIES': 'Útiles Escolares',
+      'OTHERS': 'Otros'
     };
-    return labels[category] || category;
+    return categoryMap[category] || category;
   }
 
   /**
-   * Formatea una fecha en formato legible en español
+   * Formatea fecha
    */
   formatDate(date: Date | undefined): string {
     if (!date) return 'N/A';
     const d = new Date(date);
-    return d.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  /**
+   * Obtiene clase de badge
+   */
+  getStatusBadgeClass(status: ResourceStatus): string {
+    const classMap: { [key: string]: string } = {
+      'AVAILABLE': 'bg-success',
+      'CLAIMED': 'bg-warning',
+      'IN_TRANSIT': 'bg-primary',
+      'DELIVERED': 'bg-info',
+      'CANCELLED': 'bg-secondary'
+    };
+    return classMap[status] || 'bg-secondary';
+  }
+
+  /**
+   * Obtiene icono de categoría
+   */
+  getCategoryIcon(category: ResourceCategory): string {
+    const icons: { [key: string]: string } = {
+      'CLOTHING': 'bi-bag',
+      'FOOD': 'bi-basket',
+      'TOOLS': 'bi-wrench',
+      'TOYS': 'bi-balloon',
+      'FURNITURE': 'bi-house',
+      'ELECTRONICS': 'bi-laptop',
+      'BOOKS': 'bi-book',
+      'HYGIENE': 'bi-droplet',
+      'SCHOOL_SUPPLIES': 'bi-pencil',
+      'OTHERS': 'bi-box'
+    };
+    return icons[category] || 'bi-box';
   }
 }

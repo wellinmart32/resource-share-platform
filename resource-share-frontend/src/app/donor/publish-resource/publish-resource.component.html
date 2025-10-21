@@ -102,7 +102,7 @@
           </div>
 
           <!-- Dirección de referencia -->
-          <div class="mb-0">
+          <div class="mb-3">
             <label for="address" class="form-label d-flex align-items-center">
               <i class="bi bi-signpost-fill me-2 icon-primary"></i>
               Dirección de referencia
@@ -114,6 +114,34 @@
               formControlName="address"
               placeholder="Ej: Cerca del parque central, Av. Principal #123">
             <small class="text-muted d-block mt-1">Opcional: ayuda a ubicarte mejor</small>
+          </div>
+
+          <!-- Modo de confirmación -->
+          <div class="mb-0">
+            <label class="form-label d-flex align-items-center">
+              <i class="bi bi-check2-square me-2 icon-primary"></i>
+              Modo de confirmación
+            </label>
+            <div class="form-check form-switch">
+              <input 
+                class="form-check-input" 
+                type="checkbox" 
+                id="autoConfirm" 
+                formControlName="autoConfirm"
+                style="width: 3rem; height: 1.5rem;">
+              <label class="form-check-label ms-2" for="autoConfirm">
+                <strong>Confirmación Automática</strong>
+              </label>
+            </div>
+            <small class="text-muted d-block mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              <span *ngIf="!resourceForm.value.autoConfirm">
+                <strong>Manual:</strong> Deberás confirmar manualmente cuando el receptor reclame el recurso
+              </span>
+              <span *ngIf="resourceForm.value.autoConfirm">
+                <strong>Automático:</strong> El recurso pasará directamente a "En Tránsito" cuando sea reclamado
+              </span>
+            </small>
           </div>
 
         </div>

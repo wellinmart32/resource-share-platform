@@ -1,4 +1,3 @@
- 
 import { ResourceStatus } from '../../enums/resource-status.enum';
 import { ResourceCategory } from '../../enums/resource-category.enum';
 
@@ -28,6 +27,9 @@ export interface Resource {
   
   // URL de la imagen del recurso (opcional)
   imageUrl?: string;
+  
+  // Configuración de confirmación automática
+  autoConfirm?: boolean;
   
   // Timestamps
   createdAt: Date;
