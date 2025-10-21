@@ -25,23 +25,20 @@ public class ResourceResponse {
     private ResourceCategory category;
     private ResourceStatus status;
 
-    // Información del donante
     private Long donorId;
     private String donorName;
 
-    // Ubicación del recurso
     private Double latitude;
     private Double longitude;
     private String address;
 
-    // Información del receptor (si ya fue reclamado)
     private Long receiverId;
     private String receiverName;
 
-    // Imagen
     private String imageUrl;
 
-    // Timestamps
+    private Boolean autoConfirm;
+
     private LocalDateTime createdAt;
     private LocalDateTime claimedAt;
     private LocalDateTime deliveredAt;

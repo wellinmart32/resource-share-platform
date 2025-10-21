@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 /**
  * Servicio de gestión de recursos donados
  * Maneja publicación, búsqueda, reclamación, entrega y flujo completo de donaciones
+ * Soporta confirmación manual y automática según configuración del donante
  */
 @Service
 public class ResourceService {
@@ -32,6 +33,7 @@ public class ResourceService {
     /**
      * Publica un nuevo recurso (solo DONOR)
      * El recurso se crea con estado AVAILABLE y puede ser reclamado por receptores
+     * El donante puede configurar si la confirmación será manual o automática
      */
     @Transactional
     public ResourceResponse publishResource(ResourceRequest request, String donorEmail) {
@@ -48,6 +50,9 @@ public class ResourceService {
         resource.setLongitude(request.getLongitude());
         resource.setAddress(request.getAddress());
         resource.setImageUrl(request.getImageUrl());
+        
+        // Configurar modo de confirmación (manual por defecto)
+        resource.setAutoConfirm(request.getAutoConfirm() != null ? request.getAutoConfirm() : false);
 
         Resource savedResource = resourceRepository.save(resource);
 
@@ -119,7 +124,9 @@ public class ResourceService {
 
     /**
      * Reclama un recurso (solo RECEIVER)
-     * Cambia el estado de AVAILABLE a CLAIMED y asigna el receptor
+     * Cambia el estado según configuración del recurso:
+     * - Si autoConfirm = true: pasa directo a IN_TRANSIT (entrega automática)
+     * - Si autoConfirm = false: pasa a CLAIMED (requiere confirmación manual del donante)
      */
     @Transactional
     public ResourceResponse claimResource(Long resourceId, String receiverEmail) {
@@ -133,10 +140,18 @@ public class ResourceService {
         User receiver = userRepository.findByEmail(receiverEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("Receptor no encontrado"));
 
-        // Asignar receptor y cambiar estado a CLAIMED
+        // Asignar receptor y registrar fecha de reclamación
         resource.setReceiver(receiver);
-        resource.setStatus(ResourceStatus.CLAIMED);
         resource.setClaimedAt(LocalDateTime.now());
+
+        // Determinar el estado según configuración de auto-confirmación
+        if (resource.getAutoConfirm() != null && resource.getAutoConfirm()) {
+            // Confirmación automática: ir directo a IN_TRANSIT
+            resource.setStatus(ResourceStatus.IN_TRANSIT);
+        } else {
+            // Confirmación manual: pasar a CLAIMED y esperar confirmación del donante
+            resource.setStatus(ResourceStatus.CLAIMED);
+        }
 
         Resource updatedResource = resourceRepository.save(resource);
         return mapToResponse(updatedResource);
@@ -146,6 +161,7 @@ public class ResourceService {
      * Confirma el encuentro entre donante y receptor (solo DONOR)
      * Cambia el estado de CLAIMED a IN_TRANSIT indicando que el recurso está en proceso de entrega
      * Solo el donante que publicó el recurso puede confirmar el encuentro
+     * Solo aplica para recursos con confirmación manual
      */
     @Transactional
     public ResourceResponse confirmPickup(Long resourceId, String donorEmail) {
@@ -190,7 +206,7 @@ public class ResourceService {
             throw new RuntimeException("No tienes permiso para confirmar esta entrega");
         }
 
-        // CORREGIDO: Validar que el recurso está en estado IN_TRANSIT (no CLAIMED)
+        // Validar que el recurso está en estado IN_TRANSIT
         if (resource.getStatus() != ResourceStatus.IN_TRANSIT) {
             throw new RuntimeException("El recurso debe estar en estado IN_TRANSIT para confirmar la entrega");
         }
@@ -198,6 +214,36 @@ public class ResourceService {
         // Cambiar estado a DELIVERED y registrar fecha de entrega
         resource.setStatus(ResourceStatus.DELIVERED);
         resource.setDeliveredAt(LocalDateTime.now());
+
+        Resource updatedResource = resourceRepository.save(resource);
+        return mapToResponse(updatedResource);
+    }
+
+    /**
+     * Cambia el modo de confirmación de un recurso (solo DONOR que lo publicó)
+     * Permite al donante activar/desactivar la confirmación automática en cualquier momento
+     * Solo se puede cambiar si el recurso está en estado AVAILABLE
+     */
+    @Transactional
+    public ResourceResponse toggleAutoConfirm(Long resourceId, String donorEmail) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Recurso no encontrado"));
+
+        User donor = userRepository.findByEmail(donorEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("Donante no encontrado"));
+
+        // Verificar que el recurso pertenece al donante
+        if (!resource.getDonor().getId().equals(donor.getId())) {
+            throw new RuntimeException("No tienes permiso para modificar este recurso");
+        }
+
+        // Solo se puede cambiar si el recurso está disponible
+        if (resource.getStatus() != ResourceStatus.AVAILABLE) {
+            throw new RuntimeException("Solo se puede cambiar el modo de confirmación de recursos disponibles");
+        }
+
+        // Alternar el valor de autoConfirm
+        resource.setAutoConfirm(!resource.getAutoConfirm());
 
         Resource updatedResource = resourceRepository.save(resource);
         return mapToResponse(updatedResource);
@@ -237,7 +283,7 @@ public class ResourceService {
 
     /**
      * Convierte una entidad Resource a ResourceResponse DTO
-     * Mapea todos los campos incluyendo información del donante y receptor
+     * Mapea todos los campos incluyendo información del donante, receptor y configuración de auto-confirmación
      */
     private ResourceResponse mapToResponse(Resource resource) {
         return ResourceResponse.builder()
@@ -256,6 +302,7 @@ public class ResourceService {
                         ? resource.getReceiver().getFirstName() + " " + resource.getReceiver().getLastName() 
                         : null)
                 .imageUrl(resource.getImageUrl())
+                .autoConfirm(resource.getAutoConfirm())
                 .createdAt(resource.getCreatedAt())
                 .claimedAt(resource.getClaimedAt())
                 .deliveredAt(resource.getDeliveredAt())

@@ -43,12 +43,10 @@ public class Resource {
     @Column(nullable = false)
     private ResourceStatus status = ResourceStatus.AVAILABLE;
 
-    // Información del donante
     @ManyToOne
     @JoinColumn(name = "donor_id", nullable = false)
     private User donor;
 
-    // Ubicación del recurso (donde está el donante)
     @NotNull(message = "La latitud es obligatoria")
     @Column(nullable = false)
     private Double latitude;
@@ -60,16 +58,16 @@ public class Resource {
     @Column(length = 500)
     private String address;
 
-    // Información del receptor (si ya fue reclamado)
     @ManyToOne
     @JoinColumn(name = "receiver_id")
     private User receiver;
 
-    // URL de la imagen del recurso
     @Column(length = 1000)
     private String imageUrl;
 
-    // Timestamps del ciclo de vida
+    @Column(name = "auto_confirm", nullable = false)
+    private Boolean autoConfirm = false;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -1,49 +1,55 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
-import { Subscription } from 'rxjs';
 import { AuthService } from '../core/services/auth/auth-service';
 import { ResourceService } from '../core/services/resource/resource-service';
 import { User } from '../core/models/auth/user.model';
 import { Resource } from '../core/models/resource/resource.model';
 import { ResourceStatus } from '../core/enums/resource-status.enum';
+import { ResourceCategory } from '../core/enums/resource-category.enum';
+
+interface DonorStats {
+  totalDonations: number;
+  activeDonations: number;
+  completedDonations: number;
+  claimedCount: number;
+}
+
+interface ReceiverData {
+  nearbyResources: number;
+  claimedResources: number;
+}
 
 @Component({
   selector: 'app-home',
-  standalone: true,
-  imports: [CommonModule, IonicModule],
   templateUrl: './home.page.html',
-  styleUrls: ['./home.page.scss']
+  styleUrls: ['./home.page.scss'],
+  standalone: true,
+  imports: [CommonModule, IonicModule]
 })
-export class HomePage implements OnInit, OnDestroy {
-  
-  // Información del usuario actual
+export class HomePage implements OnInit {
+
   isDonor = false;
   isReceiver = false;
   userName = '';
   userEmail = '';
   
-  // Estadísticas del donante
-  donorStats = {
+  isLoading = true;
+  
+  donorStats: DonorStats = {
     totalDonations: 0,
     activeDonations: 0,
-    completedDonations: 0
+    completedDonations: 0,
+    claimedCount: 0
   };
-
-  // Datos del receptor
-  receiverData = {
+  
+  receiverData: ReceiverData = {
     nearbyResources: 0,
     claimedResources: 0
   };
-
-  // Lista de recursos recientes para mostrar en el dashboard
+  
   recentResources: Resource[] = [];
-  
-  isLoading = true;
-  
-  // Suscripción al observable del usuario actual
-  private currentUserSubscription?: Subscription;
 
   constructor(
     private authService: AuthService,
@@ -52,58 +58,18 @@ export class HomePage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // CRÍTICO: Verificar autenticación primero
-    if (!this.authService.isAuthenticated()) {
-      console.warn('Usuario no autenticado, redirigiendo a login');
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    this.subscribeToAuthChanges();
-    this.checkAuthenticationStatus();
-  }
-
-  ngOnDestroy() {
-    // Limpiar suscripciones para evitar memory leaks
-    this.currentUserSubscription?.unsubscribe();
+    this.loadUserData();
   }
 
   /**
-   * Suscribe a los cambios en el estado de autenticación
-   * Se ejecuta cada vez que el usuario inicia o cierra sesión
+   * Carga los datos del usuario actual
+   * Verifica que existe sesión activa antes de continuar
    */
-  private subscribeToAuthChanges() {
-    this.currentUserSubscription = this.authService.currentUser$.subscribe({
-      next: (user: User | null) => {
-        if (user) {
-          this.updateUserData(user);
-        } else {
-          // Si el usuario es null, significa que cerró sesión
-          this.clearUserData();
-          this.router.navigate(['/login']);
-        }
-      }
-    });
-  }
-
-  /**
-   * Verifica si el usuario está autenticado al cargar la página
-   * Redirige al login si no hay sesión activa
-   */
-  private checkAuthenticationStatus() {
-    const isAuth = this.authService.isAuthenticated();
-    
-    if (!isAuth) {
-      console.warn('No hay sesión activa, redirigiendo a login');
-      this.router.navigate(['/login']);
-      return;
-    }
-    
+  private loadUserData() {
     const currentUser = this.authService.getCurrentUser();
     if (currentUser) {
       this.updateUserData(currentUser);
     } else {
-      // Si no hay usuario pero hay token, hay un problema
       console.error('Token existe pero usuario no está disponible');
       this.authService.logout();
       this.router.navigate(['/login']);
@@ -154,50 +120,47 @@ export class HomePage implements OnInit, OnDestroy {
   private loadDonorData() {
     this.resourceService.getMyDonorResources().subscribe({
       next: (resources: Resource[]) => {
-        // Calcular estadísticas
         this.donorStats.totalDonations = resources.length;
         this.donorStats.activeDonations = resources.filter(r => 
           r.status === ResourceStatus.AVAILABLE || 
-          r.status === ResourceStatus.CLAIMED || 
+          r.status === ResourceStatus.CLAIMED ||
           r.status === ResourceStatus.IN_TRANSIT
         ).length;
         this.donorStats.completedDonations = resources.filter(r => 
           r.status === ResourceStatus.DELIVERED
         ).length;
+        this.donorStats.claimedCount = resources.filter(r =>
+          r.status === ResourceStatus.CLAIMED
+        ).length;
         
-        // Mostrar los 3 recursos más recientes
         this.recentResources = resources.slice(0, 3);
         this.isLoading = false;
       },
       error: (error: any) => {
         console.error('Error cargando datos del donante:', error);
-        this.useMockDonorData();
         this.isLoading = false;
+        this.useMockDonorData();
       }
     });
   }
 
   /**
    * Carga los datos del receptor
-   * Obtiene recursos disponibles cercanos y recursos reclamados
+   * Obtiene recursos disponibles y recursos ya reclamados
    */
   private loadReceiverData() {
-    // Cargar recursos disponibles
     this.resourceService.getAvailableResources().subscribe({
       next: (resources: Resource[]) => {
         this.receiverData.nearbyResources = resources.length;
-        // Mostrar los 5 recursos más recientes
         this.recentResources = resources.slice(0, 5);
         this.isLoading = false;
       },
       error: (error: any) => {
         console.error('Error cargando recursos disponibles:', error);
-        this.useMockReceiverData();
-        this.isLoading = false;
+        this.receiverData.nearbyResources = 0;
       }
     });
 
-    // Cargar recursos reclamados por el usuario
     this.resourceService.getMyReceivedResources().subscribe({
       next: (resources: Resource[]) => {
         this.receiverData.claimedResources = resources.length;
@@ -216,7 +179,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.donorStats = {
       totalDonations: 5,
       activeDonations: 2,
-      completedDonations: 3
+      completedDonations: 3,
+      claimedCount: 1
     };
   }
 
@@ -242,6 +206,13 @@ export class HomePage implements OnInit, OnDestroy {
    */
   viewMyDonations() {
     this.router.navigate(['/donor/my-donations']);
+  }
+
+  /**
+   * Navega a la página de recursos reclamados
+   */
+  viewClaimedResources() {
+    this.router.navigate(['/donor/claimed-resources']);
   }
 
   /**

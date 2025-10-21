@@ -37,6 +37,12 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { role: UserRole.DONOR }
   },
+  {
+    path: 'donor/claimed-resources',
+    loadComponent: () => import('./donor/claimed-resources/claimed-resources.component').then(m => m.ClaimedResourcesComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { role: UserRole.DONOR }
+  },
 
   {
     path: 'receiver/browse-resources',
@@ -47,6 +53,18 @@ export const routes: Routes = [
   {
     path: 'receiver/my-received',
     loadComponent: () => import('./receiver/my-received/my-received.component').then(m => m.MyReceivedComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { role: UserRole.RECEIVER }
+  },
+  {
+    path: 'receiver/my-claims',
+    loadComponent: () => import('./receiver/my-claims/my-claims.component').then(m => m.MyClaimsComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { role: UserRole.RECEIVER }
+  },
+  {
+    path: 'receiver/in-transit',
+    loadComponent: () => import('./receiver/in-transit/in-transit.component').then(m => m.InTransitComponent),
     canActivate: [authGuard, roleGuard],
     data: { role: UserRole.RECEIVER }
   },

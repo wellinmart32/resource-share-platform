@@ -15,7 +15,6 @@
 <ion-content>
   <div class="container-fluid p-3" style="background: var(--background-light); min-height: 100vh;">
 
-    <!-- Información del usuario -->
     <div class="card shadow-soft mb-3">
       <div class="card-body">
         <div class="d-flex align-items-center">
@@ -34,7 +33,6 @@
       </div>
     </div>
 
-    <!-- Loading state -->
     <div *ngIf="isLoading" class="text-center py-5">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Cargando...</span>
@@ -42,10 +40,8 @@
       <p class="text-muted mt-3">Cargando información...</p>
     </div>
 
-    <!-- Vista para DONANTE -->
     <ng-container *ngIf="isDonor && !isLoading">
       
-      <!-- Estadísticas del donante -->
       <div class="row g-3 mb-3">
         <div class="col-md-4">
           <div class="card shadow-soft h-100" style="border-left: 4px solid var(--primary-color);">
@@ -76,7 +72,6 @@
         </div>
       </div>
 
-      <!-- Botón principal: Publicar Recurso -->
       <div class="card shadow-soft mb-3">
         <div class="card-header text-white" style="background: linear-gradient(135deg, #52C41A 0%, #389e0d 100%);">
           <h5 class="card-title mb-0 d-flex align-items-center">
@@ -97,7 +92,6 @@
         </div>
       </div>
 
-      <!-- Mis donaciones recientes -->
       <div class="card shadow-soft mb-3" *ngIf="recentResources.length > 0">
         <div class="card-header bg-white border-bottom">
           <h6 class="card-title mb-0 d-flex align-items-center text-dark">
@@ -135,7 +129,6 @@
         </div>
       </div>
 
-      <!-- Acciones rápidas -->
       <div class="card shadow-soft">
         <div class="card-header bg-white border-bottom">
           <h6 class="card-title mb-0 d-flex align-items-center text-dark">
@@ -149,6 +142,13 @@
               <i class="bi bi-list-ul me-2"></i>
               Ver Mis Donaciones
             </button>
+            <button class="btn btn-outline-warning" (click)="viewClaimedResources()">
+              <i class="bi bi-hand-thumbs-up-fill me-2"></i>
+              Recursos Reclamados
+              <span class="badge bg-warning text-dark ms-2" *ngIf="donorStats.claimedCount > 0">
+                {{ donorStats.claimedCount }}
+              </span>
+            </button>
             <button class="btn btn-outline-secondary" (click)="viewProfile()">
               <i class="bi bi-person me-2"></i>
               Mi Perfil
@@ -159,10 +159,8 @@
 
     </ng-container>
 
-    <!-- Vista para RECEPTOR -->
     <ng-container *ngIf="isReceiver && !isLoading">
       
-      <!-- Información de recursos -->
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <div class="card shadow-soft h-100" style="border-left: 4px solid var(--primary-color);">
@@ -176,7 +174,7 @@
         <div class="col-md-6">
           <div class="card shadow-soft h-100" style="border-left: 4px solid var(--success-color);">
             <div class="card-body text-center">
-              <i class="bi bi-box-seam icon-success fs-1 mb-2"></i>
+              <i class="bi bi-hand-thumbs-up icon-success fs-1 mb-2"></i>
               <h3 class="text-success mb-1 fw-bold">{{ receiverData.claimedResources }}</h3>
               <p class="text-muted small mb-0">Mis Recursos</p>
             </div>
@@ -184,7 +182,6 @@
         </div>
       </div>
 
-      <!-- Botón principal: Buscar Recursos -->
       <div class="card shadow-soft mb-3">
         <div class="card-header text-white" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
           <h5 class="card-title mb-0 d-flex align-items-center">
@@ -193,24 +190,23 @@
           </h5>
         </div>
         <div class="card-body text-center p-4">
-          <i class="bi bi-search mb-3 icon-primary" style="font-size: 3.5rem;"></i>
+          <i class="bi bi-search mb-3" style="font-size: 3.5rem; color: var(--primary-color);"></i>
           <h5 class="mb-3 text-dark">¿Necesitas algo?</h5>
           <p class="text-muted mb-4">
-            Explora recursos disponibles cerca de ti
+            Explora los recursos disponibles cerca de ti
           </p>
           <button class="btn btn-primary btn-lg w-100 fw-bold" (click)="browseResources()">
             <i class="bi bi-search me-2"></i>
-            Buscar Recursos
+            Explorar Recursos
           </button>
         </div>
       </div>
 
-      <!-- Recursos disponibles recientes -->
       <div class="card shadow-soft mb-3" *ngIf="recentResources.length > 0">
         <div class="card-header bg-white border-bottom">
           <h6 class="card-title mb-0 d-flex align-items-center text-dark">
             <i class="bi bi-star me-2 icon-warning"></i>
-            Recursos Disponibles
+            Recursos Destacados
           </h6>
         </div>
         <div class="card-body">
@@ -242,7 +238,6 @@
         </div>
       </div>
 
-      <!-- Acciones rápidas -->
       <div class="card shadow-soft">
         <div class="card-header bg-white border-bottom">
           <h6 class="card-title mb-0 d-flex align-items-center text-dark">

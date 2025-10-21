@@ -8,8 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Datos de entrada para publicar un recurso
- * Enviado por DONOR al endpoint POST /api/resources
+ * Datos de entrada para publicar un nuevo recurso
+ * Enviado desde el frontend al endpoint POST /api/resources
  */
 @Data
 @NoArgsConstructor
@@ -32,5 +32,8 @@ public class ResourceRequest {
     private Double longitude;
 
     private String address;
+
     private String imageUrl;
+
+    private Boolean autoConfirm;
 }
