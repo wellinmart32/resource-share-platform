@@ -13,13 +13,10 @@ import { UserRole } from '../../enums/user-role.enum';
 export class AuthService {
   private readonly API_URL = 'http://localhost:8080/api/auth';
   
-  // BehaviorSubject para mantener el estado del usuario actual de forma reactiva
-  // Permite que otros componentes se suscriban a cambios de autenticación
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {
-    // Verificar si hay una sesión guardada al inicializar el servicio
     this.checkStoredAuth();
   }
 
@@ -28,13 +25,18 @@ export class AuthService {
    * Guarda el token JWT y la información del usuario en localStorage
    */
   login(loginRequest: LoginRequest): Observable<AuthResponse> {
+    // 🧹 LIMPIAR DATOS ANTERIORES ANTES DE HACER LOGIN
+    console.log('🧹 Limpiando sesión anterior antes de nuevo login');
+    this.clearAllAuthData();
+    
     return this.http.post<AuthResponse>(`${this.API_URL}/login`, loginRequest)
       .pipe(
         tap(response => {
-          // Guardar token y datos del usuario
+          console.log('✅ Login exitoso:', response.email);
+          console.log('📦 UserId recibido:', response.userId);
+          
           this.saveAuthData(response.token, response);
           
-          // Crear objeto de usuario para el BehaviorSubject
           const user: User = {
             id: response.userId,
             role: response.role,
@@ -45,7 +47,7 @@ export class AuthService {
             active: true
           };
           
-          // Emitir el nuevo usuario a todos los suscriptores
+          console.log('👤 Emitiendo nuevo usuario al BehaviorSubject:', user.email);
           this.currentUserSubject.next(user);
         }),
         catchError(error => {
@@ -63,10 +65,8 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.API_URL}/register`, registerRequest)
       .pipe(
         tap(response => {
-          // Guardar token y datos del usuario
           this.saveAuthData(response.token, response);
           
-          // Crear objeto de usuario
           const user: User = {
             id: response.userId,
             role: response.role,
@@ -77,7 +77,6 @@ export class AuthService {
             active: true
           };
           
-          // Emitir el nuevo usuario
           this.currentUserSubject.next(user);
         }),
         catchError(error => {
@@ -92,6 +91,16 @@ export class AuthService {
    * Limpia todos los datos de autenticación del localStorage
    */
   logout(): void {
+    console.log('🚪 Cerrando sesión del usuario');
+    this.clearAllAuthData();
+    console.log('✅ Sesión cerrada exitosamente');
+  }
+
+  /**
+   * Limpia TODOS los datos de autenticación
+   * Se usa tanto en logout como antes de un nuevo login
+   */
+  private clearAllAuthData(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
@@ -99,10 +108,9 @@ export class AuthService {
     localStorage.removeItem('userFirstName');
     localStorage.removeItem('userLastName');
     
-    // Emitir null para indicar que no hay usuario autenticado
     this.currentUserSubject.next(null);
     
-    console.log('Sesión cerrada exitosamente');
+    console.log('🗑️ Todos los datos de autenticación limpiados');
   }
 
   /**
@@ -115,7 +123,6 @@ export class AuthService {
     const userRole = localStorage.getItem('userRole');
     const userEmail = localStorage.getItem('userEmail');
     
-    // Si existe token y datos de usuario, restaurar la sesión
     if (token && userId && userRole && userEmail) {
       const user: User = {
         id: parseInt(userId),
@@ -128,7 +135,9 @@ export class AuthService {
       };
       
       this.currentUserSubject.next(user);
-      console.log('Sesión restaurada desde localStorage');
+      console.log('♻️ Sesión restaurada desde localStorage:', userEmail);
+    } else {
+      console.log('ℹ️ No hay sesión previa para restaurar');
     }
   }
 
@@ -144,7 +153,7 @@ export class AuthService {
     localStorage.setItem('userFirstName', authResponse.firstName);
     localStorage.setItem('userLastName', authResponse.lastName);
     
-    console.log('Datos de autenticación guardados en localStorage');
+    console.log('💾 Datos de autenticación guardados:', authResponse.email);
   }
 
   /**
