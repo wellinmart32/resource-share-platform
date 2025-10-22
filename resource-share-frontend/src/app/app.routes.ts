@@ -24,6 +24,11 @@ export const routes: Routes = [
     loadComponent: () => import('./home/home.page').then(m => m.HomePage),
     canActivate: [authGuard]
   },
+  {
+    path: 'profile',
+    loadComponent: () => import('./profile/profile.component').then(m => m.ProfileComponent),
+    canActivate: [authGuard]
+  },
 
   {
     path: 'donor/publish-resource',

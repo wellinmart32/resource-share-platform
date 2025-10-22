@@ -1,3 +1,228 @@
-<p>
-  profile works!
-</p>
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Mi Perfil</ion-title>
+    <ion-buttons slot="end" *ngIf="!isEditing && !isLoading">
+      <ion-button (click)="enableEdit()">
+        <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="d-flex flex-column align-items-center justify-content-center" style="height: 60vh;">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p class="text-muted mt-3">Cargando perfil...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    
+    <!-- Avatar y nombre -->
+    <div class="text-center my-4">
+      <div class="d-flex justify-content-center mb-3">
+        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" 
+             style="width: 120px; height: 120px;">
+          <ion-icon name="person-circle" color="primary" style="font-size: 100px;"></ion-icon>
+        </div>
+      </div>
+      <h2 *ngIf="currentUser" class="mb-2">{{ currentUser.firstName }} {{ currentUser.lastName }}</h2>
+      <ion-badge [color]="isDonor ? 'success' : 'tertiary'">
+        {{ isDonor ? 'Donante' : 'Receptor' }}
+      </ion-badge>
+    </div>
+
+    <!-- Mensajes -->
+    <ion-card *ngIf="successMessage" color="success" class="my-3">
+      <ion-card-content class="d-flex align-items-center">
+        <ion-icon name="checkmark-circle" class="me-2" style="font-size: 1.5rem;"></ion-icon>
+        {{ successMessage }}
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="errorMessage" color="danger" class="my-3">
+      <ion-card-content class="d-flex align-items-center">
+        <ion-icon name="alert-circle" class="me-2" style="font-size: 1.5rem;"></ion-icon>
+        {{ errorMessage }}
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Formulario -->
+    <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+      
+      <!-- Información Personal -->
+      <ion-card class="my-3">
+        <ion-card-header>
+          <ion-card-title>Información Personal</ion-card-title>
+        </ion-card-header>
+        
+        <ion-card-content>
+          
+          <!-- Nombre -->
+          <ion-item>
+            <ion-label position="stacked">
+              Nombre <ion-text color="danger">*</ion-text>
+            </ion-label>
+            <ion-input 
+              type="text" 
+              formControlName="firstName"
+              placeholder="Ingresa tu nombre"
+              [readonly]="!isEditing">
+            </ion-input>
+          </ion-item>
+          <div class="text-danger small mt-1 ms-2" *ngIf="hasError('firstName')">
+            <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('firstName') }}
+          </div>
+
+          <!-- Apellido -->
+          <ion-item>
+            <ion-label position="stacked">
+              Apellido <ion-text color="danger">*</ion-text>
+            </ion-label>
+            <ion-input 
+              type="text" 
+              formControlName="lastName"
+              placeholder="Ingresa tu apellido"
+              [readonly]="!isEditing">
+            </ion-input>
+          </ion-item>
+          <div class="text-danger small mt-1 ms-2" *ngIf="hasError('lastName')">
+            <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('lastName') }}
+          </div>
+
+          <!-- Email -->
+          <ion-item>
+            <ion-label position="stacked">Email</ion-label>
+            <ion-input 
+              type="email" 
+              formControlName="email"
+              readonly>
+            </ion-input>
+          </ion-item>
+          <ion-note class="d-flex align-items-center mt-1 ms-2 text-muted small">
+            <ion-icon name="information-circle-outline" class="me-1"></ion-icon>
+            El email no se puede modificar
+          </ion-note>
+
+          <!-- Teléfono -->
+          <ion-item class="mt-2">
+            <ion-label position="stacked">
+              Teléfono <ion-text color="danger">*</ion-text>
+            </ion-label>
+            <ion-input 
+              type="tel" 
+              formControlName="phone"
+              placeholder="0987654321"
+              maxlength="10"
+              [readonly]="!isEditing">
+            </ion-input>
+          </ion-item>
+          <div class="text-danger small mt-1 ms-2" *ngIf="hasError('phone')">
+            <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('phone') }}
+          </div>
+
+          <!-- Rol -->
+          <ion-item class="mt-2">
+            <ion-label position="stacked">Rol</ion-label>
+            <ion-input 
+              type="text" 
+              formControlName="role"
+              readonly>
+            </ion-input>
+          </ion-item>
+          <ion-note class="d-flex align-items-center mt-1 ms-2 text-muted small">
+            <ion-icon name="information-circle-outline" class="me-1"></ion-icon>
+            El rol no se puede modificar
+          </ion-note>
+
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Ubicación (solo DONOR) -->
+      <ion-card *ngIf="isDonor" class="my-3">
+        <ion-card-header>
+          <ion-card-title>Ubicación (Opcional)</ion-card-title>
+          <ion-card-subtitle class="text-muted small">
+            Esta información ayuda a los receptores a encontrar tus recursos
+          </ion-card-subtitle>
+        </ion-card-header>
+        
+        <ion-card-content>
+          
+          <!-- Dirección -->
+          <ion-item>
+            <ion-label position="stacked">Dirección</ion-label>
+            <ion-input 
+              type="text" 
+              formControlName="address"
+              placeholder="Ej: Av. Principal 123"
+              [readonly]="!isEditing">
+            </ion-input>
+          </ion-item>
+
+          <!-- Ciudad -->
+          <ion-item>
+            <ion-label position="stacked">Ciudad</ion-label>
+            <ion-input 
+              type="text" 
+              formControlName="city"
+              placeholder="Ej: Guayaquil"
+              [readonly]="!isEditing">
+            </ion-input>
+          </ion-item>
+
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Botones de acción -->
+      <div *ngIf="isEditing" class="d-flex flex-column gap-2 my-4">
+        <ion-button 
+          expand="block" 
+          color="medium" 
+          (click)="cancelEdit()"
+          [disabled]="isSaving">
+          <ion-icon name="close-outline" slot="start"></ion-icon>
+          Cancelar
+        </ion-button>
+
+        <ion-button 
+          expand="block" 
+          type="submit"
+          [disabled]="isSaving || profileForm.invalid">
+          <ion-spinner name="crescent" *ngIf="isSaving"></ion-spinner>
+          <ion-icon name="save-outline" slot="start" *ngIf="!isSaving"></ion-icon>
+          {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
+        </ion-button>
+      </div>
+
+    </form>
+
+    <!-- Información adicional -->
+    <ion-card class="my-3" style="background: var(--ion-color-light);">
+      <ion-card-content>
+        <div class="d-flex align-items-start mb-3">
+          <ion-icon name="shield-checkmark-outline" color="primary" class="me-3" style="font-size: 1.75rem;"></ion-icon>
+          <div>
+            <strong class="d-block mb-1">Seguridad</strong>
+            <p class="mb-0 small text-muted">Tus datos están protegidos y encriptados</p>
+          </div>
+        </div>
+        <div class="d-flex align-items-start">
+          <ion-icon name="eye-off-outline" color="primary" class="me-3" style="font-size: 1.75rem;"></ion-icon>
+          <div>
+            <strong class="d-block mb-1">Privacidad</strong>
+            <p class="mb-0 small text-muted">Solo tú puedes ver y editar esta información</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+
+</ion-content>
