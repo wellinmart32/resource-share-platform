@@ -57,9 +57,11 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit() {
-    console.log('👤 Inicializando componente de perfil');
+    console.log('👤 [PROFILE] Inicializando componente de perfil');
     this.loadUserProfile();
   }
+
+  // ===== MÉTODOS DE CARGA DE DATOS =====
 
   /**
    * Carga el perfil del usuario desde el backend
@@ -71,7 +73,7 @@ export class ProfileComponent implements OnInit {
 
     this.userService.getCurrentUser().subscribe({
       next: (user: User) => {
-        console.log('✅ Perfil cargado:', user.email);
+        console.log('✅ [PROFILE] Perfil cargado:', user.email);
         this.currentUser = user;
         this.isDonor = user.role === UserRole.DONOR;
         this.isReceiver = user.role === UserRole.RECEIVER;
@@ -81,7 +83,7 @@ export class ProfileComponent implements OnInit {
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('❌ Error cargando perfil:', error);
+        console.error('❌ [PROFILE] Error cargando perfil:', error);
         this.errorMessage = 'Error al cargar el perfil. Por favor intenta de nuevo.';
         this.isLoading = false;
         
@@ -123,6 +125,7 @@ export class ProfileComponent implements OnInit {
       this.populateForm(user);
     } else {
       // Si no hay usuario, redirigir al login
+      console.log('⚠️ [PROFILE] Sin usuario en localStorage, redirigiendo');
       this.router.navigate(['/login']);
     }
   }
@@ -141,12 +144,14 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  // ===== MÉTODOS DE EDICIÓN =====
+
   /**
    * Habilita el modo de edición del formulario
    * Permite modificar los campos editables
    */
   enableEdit() {
-    console.log('✏️ Habilitando edición de perfil');
+    console.log('✏️ [PROFILE] Habilitando edición de perfil');
     this.isEditing = true;
     this.errorMessage = '';
     this.successMessage = '';
@@ -167,7 +172,7 @@ export class ProfileComponent implements OnInit {
    * Cancela el modo de edición y restaura los valores originales
    */
   cancelEdit() {
-    console.log('❌ Cancelando edición de perfil');
+    console.log('❌ [PROFILE] Cancelando edición de perfil');
     this.isEditing = false;
     this.errorMessage = '';
     this.successMessage = '';
@@ -208,12 +213,12 @@ export class ProfileComponent implements OnInit {
       updateData.city = this.profileForm.get('city')?.value;
     }
 
-    console.log('💾 Guardando perfil:', updateData);
+    console.log('💾 [PROFILE] Guardando perfil:', updateData);
 
     // Enviar actualización al backend
     this.userService.updateCurrentUser(updateData).subscribe({
       next: (updatedUser: User) => {
-        console.log('✅ Perfil actualizado exitosamente');
+        console.log('✅ [PROFILE] Perfil actualizado exitosamente');
         this.currentUser = updatedUser;
         this.successMessage = 'Perfil actualizado exitosamente';
         this.isSaving = false;
@@ -232,7 +237,7 @@ export class ProfileComponent implements OnInit {
         }, 3000);
       },
       error: (error) => {
-        console.error('❌ Error actualizando perfil:', error);
+        console.error('❌ [PROFILE] Error actualizando perfil:', error);
         this.isSaving = false;
         
         // Mensajes de error específicos
@@ -258,8 +263,10 @@ export class ProfileComponent implements OnInit {
   private updateLocalStorage(user: User) {
     localStorage.setItem('userFirstName', user.firstName);
     localStorage.setItem('userLastName', user.lastName);
-    console.log('💾 LocalStorage actualizado con nuevos datos');
+    console.log('💾 [PROFILE] LocalStorage actualizado con nuevos datos');
   }
+
+  // ===== MÉTODOS DE VALIDACIÓN =====
 
   /**
    * Marca todos los campos del formulario como tocados
@@ -306,10 +313,13 @@ export class ProfileComponent implements OnInit {
     return 'Campo inválido';
   }
 
+  // ===== MÉTODOS DE NAVEGACIÓN =====
+
   /**
    * Navega de regreso a la página principal
    */
   goBack() {
+    console.log('🔙 [PROFILE] Regresando al home');
     this.router.navigate(['/home']);
   }
 }

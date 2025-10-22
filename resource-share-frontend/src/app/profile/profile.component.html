@@ -1,228 +1,251 @@
 <ion-header>
-  <ion-toolbar color="primary">
+  <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-button (click)="goBack()">
-        <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
-      </ion-button>
+      <ion-back-button defaultHref="/home"></ion-back-button>
     </ion-buttons>
     <ion-title>Mi Perfil</ion-title>
     <ion-buttons slot="end" *ngIf="!isEditing && !isLoading">
       <ion-button (click)="enableEdit()">
-        <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+        <i class="bi bi-pencil-square fs-5"></i>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  
-  <!-- Loading -->
-  <div *ngIf="isLoading" class="d-flex flex-column align-items-center justify-content-center" style="height: 60vh;">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p class="text-muted mt-3">Cargando perfil...</p>
-  </div>
+<ion-content>
+  <div class="container-auth py-4">
 
-  <div *ngIf="!isLoading">
-    
-    <!-- Avatar y nombre -->
-    <div class="text-center my-4">
-      <div class="d-flex justify-content-center mb-3">
-        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" 
-             style="width: 120px; height: 120px;">
-          <ion-icon name="person-circle" color="primary" style="font-size: 100px;"></ion-icon>
-        </div>
+    <!-- Encabezado -->
+    <div class="text-center mb-4">
+      <div class="avatar-circle mb-3 mx-auto" 
+           [style.background]="isDonor ? 'linear-gradient(135deg, #52C41A 0%, #389e0d 100%)' : 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%)'">
+        <i class="bi bi-person-circle text-white fs-1"></i>
       </div>
-      <h2 *ngIf="currentUser" class="mb-2">{{ currentUser.firstName }} {{ currentUser.lastName }}</h2>
-      <ion-badge [color]="isDonor ? 'success' : 'tertiary'">
+      <h2 class="fw-bold text-dark" *ngIf="currentUser">{{ currentUser.firstName }} {{ currentUser.lastName }}</h2>
+      <p class="text-muted mb-2">Información de tu cuenta</p>
+      <span class="badge" [class.bg-success]="isDonor" [class.bg-primary]="!isDonor">
+        <i [class]="isDonor ? 'bi bi-gift me-1' : 'bi bi-hand-thumbs-up me-1'"></i>
         {{ isDonor ? 'Donante' : 'Receptor' }}
-      </ion-badge>
+      </span>
     </div>
 
-    <!-- Mensajes -->
-    <ion-card *ngIf="successMessage" color="success" class="my-3">
-      <ion-card-content class="d-flex align-items-center">
-        <ion-icon name="checkmark-circle" class="me-2" style="font-size: 1.5rem;"></ion-icon>
-        {{ successMessage }}
-      </ion-card-content>
-    </ion-card>
+    <!-- Mensaje de éxito -->
+    <div class="alert alert-success d-flex align-items-center mb-3" role="alert" *ngIf="successMessage">
+      <i class="bi bi-check-circle-fill me-2 icon-success"></i>
+      <div>{{ successMessage }}</div>
+    </div>
 
-    <ion-card *ngIf="errorMessage" color="danger" class="my-3">
-      <ion-card-content class="d-flex align-items-center">
-        <ion-icon name="alert-circle" class="me-2" style="font-size: 1.5rem;"></ion-icon>
-        {{ errorMessage }}
-      </ion-card-content>
-    </ion-card>
+    <!-- Mensaje de error -->
+    <div class="alert alert-danger d-flex align-items-center mb-3" role="alert" *ngIf="errorMessage">
+      <i class="bi bi-exclamation-triangle-fill me-2 icon-danger"></i>
+      <div>{{ errorMessage }}</div>
+    </div>
 
-    <!-- Formulario -->
-    <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="text-center py-5">
+      <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="text-muted">Cargando perfil...</p>
+    </div>
+
+    <!-- Formulario de perfil -->
+    <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" *ngIf="!isLoading">
       
-      <!-- Información Personal -->
-      <ion-card class="my-3">
-        <ion-card-header>
-          <ion-card-title>Información Personal</ion-card-title>
-        </ion-card-header>
-        
-        <ion-card-content>
+      <!-- Card: Información Personal -->
+      <div class="card shadow-soft mb-3">
+        <div class="card-header text-white" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+          <h5 class="card-title mb-0 d-flex align-items-center">
+            <i class="bi bi-person-badge me-2"></i>
+            Información Personal
+          </h5>
+        </div>
+        <div class="card-body">
           
           <!-- Nombre -->
-          <ion-item>
-            <ion-label position="stacked">
-              Nombre <ion-text color="danger">*</ion-text>
-            </ion-label>
-            <ion-input 
+          <div class="mb-3">
+            <label for="firstName" class="form-label">
+              Nombre <span class="text-danger">*</span>
+            </label>
+            <input 
               type="text" 
+              class="form-control form-control-lg" 
+              [class.is-invalid]="hasError('firstName')"
+              id="firstName"
               formControlName="firstName"
               placeholder="Ingresa tu nombre"
               [readonly]="!isEditing">
-            </ion-input>
-          </ion-item>
-          <div class="text-danger small mt-1 ms-2" *ngIf="hasError('firstName')">
-            <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('firstName') }}
+            <div class="invalid-feedback" *ngIf="hasError('firstName')">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('firstName') }}
+            </div>
           </div>
 
           <!-- Apellido -->
-          <ion-item>
-            <ion-label position="stacked">
-              Apellido <ion-text color="danger">*</ion-text>
-            </ion-label>
-            <ion-input 
+          <div class="mb-3">
+            <label for="lastName" class="form-label">
+              Apellido <span class="text-danger">*</span>
+            </label>
+            <input 
               type="text" 
+              class="form-control form-control-lg" 
+              [class.is-invalid]="hasError('lastName')"
+              id="lastName"
               formControlName="lastName"
               placeholder="Ingresa tu apellido"
               [readonly]="!isEditing">
-            </ion-input>
-          </ion-item>
-          <div class="text-danger small mt-1 ms-2" *ngIf="hasError('lastName')">
-            <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('lastName') }}
+            <div class="invalid-feedback" *ngIf="hasError('lastName')">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('lastName') }}
+            </div>
           </div>
 
           <!-- Email -->
-          <ion-item>
-            <ion-label position="stacked">Email</ion-label>
-            <ion-input 
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input 
               type="email" 
+              class="form-control form-control-lg bg-light" 
+              id="email"
               formControlName="email"
               readonly>
-            </ion-input>
-          </ion-item>
-          <ion-note class="d-flex align-items-center mt-1 ms-2 text-muted small">
-            <ion-icon name="information-circle-outline" class="me-1"></ion-icon>
-            El email no se puede modificar
-          </ion-note>
+            <small class="text-muted d-flex align-items-center mt-1">
+              <i class="bi bi-info-circle me-1"></i>
+              El email no se puede modificar
+            </small>
+          </div>
 
           <!-- Teléfono -->
-          <ion-item class="mt-2">
-            <ion-label position="stacked">
-              Teléfono <ion-text color="danger">*</ion-text>
-            </ion-label>
-            <ion-input 
+          <div class="mb-3">
+            <label for="phone" class="form-label">
+              Teléfono <span class="text-danger">*</span>
+            </label>
+            <input 
               type="tel" 
+              class="form-control form-control-lg" 
+              [class.is-invalid]="hasError('phone')"
+              id="phone"
               formControlName="phone"
               placeholder="0987654321"
               maxlength="10"
               [readonly]="!isEditing">
-            </ion-input>
-          </ion-item>
-          <div class="text-danger small mt-1 ms-2" *ngIf="hasError('phone')">
-            <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('phone') }}
+            <div class="invalid-feedback" *ngIf="hasError('phone')">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ getErrorMessage('phone') }}
+            </div>
           </div>
 
           <!-- Rol -->
-          <ion-item class="mt-2">
-            <ion-label position="stacked">Rol</ion-label>
-            <ion-input 
+          <div class="mb-0">
+            <label for="role" class="form-label">Rol</label>
+            <input 
               type="text" 
+              class="form-control form-control-lg bg-light" 
+              id="role"
               formControlName="role"
               readonly>
-            </ion-input>
-          </ion-item>
-          <ion-note class="d-flex align-items-center mt-1 ms-2 text-muted small">
-            <ion-icon name="information-circle-outline" class="me-1"></ion-icon>
-            El rol no se puede modificar
-          </ion-note>
+            <small class="text-muted d-flex align-items-center mt-1">
+              <i class="bi bi-info-circle me-1"></i>
+              El rol no se puede modificar
+            </small>
+          </div>
 
-        </ion-card-content>
-      </ion-card>
+        </div>
+      </div>
 
-      <!-- Ubicación (solo DONOR) -->
-      <ion-card *ngIf="isDonor" class="my-3">
-        <ion-card-header>
-          <ion-card-title>Ubicación (Opcional)</ion-card-title>
-          <ion-card-subtitle class="text-muted small">
+      <!-- Card: Ubicación (solo para DONANTES) -->
+      <div class="card shadow-soft mb-3" *ngIf="isDonor">
+        <div class="card-header text-white" style="background: linear-gradient(135deg, #52C41A 0%, #389e0d 100%);">
+          <h5 class="card-title mb-0 d-flex align-items-center">
+            <i class="bi bi-geo-alt me-2"></i>
+            Ubicación (Opcional)
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
             Esta información ayuda a los receptores a encontrar tus recursos
-          </ion-card-subtitle>
-        </ion-card-header>
-        
-        <ion-card-content>
-          
+          </p>
+
           <!-- Dirección -->
-          <ion-item>
-            <ion-label position="stacked">Dirección</ion-label>
-            <ion-input 
+          <div class="mb-3">
+            <label for="address" class="form-label">Dirección</label>
+            <input 
               type="text" 
+              class="form-control form-control-lg" 
+              id="address"
               formControlName="address"
               placeholder="Ej: Av. Principal 123"
               [readonly]="!isEditing">
-            </ion-input>
-          </ion-item>
+          </div>
 
           <!-- Ciudad -->
-          <ion-item>
-            <ion-label position="stacked">Ciudad</ion-label>
-            <ion-input 
+          <div class="mb-0">
+            <label for="city" class="form-label">Ciudad</label>
+            <input 
               type="text" 
+              class="form-control form-control-lg" 
+              id="city"
               formControlName="city"
               placeholder="Ej: Guayaquil"
               [readonly]="!isEditing">
-            </ion-input>
-          </ion-item>
+          </div>
 
-        </ion-card-content>
-      </ion-card>
+        </div>
+      </div>
 
       <!-- Botones de acción -->
-      <div *ngIf="isEditing" class="d-flex flex-column gap-2 my-4">
-        <ion-button 
-          expand="block" 
-          color="medium" 
+      <div *ngIf="isEditing" class="d-grid gap-2 mb-3">
+        
+        <!-- Botón Cancelar -->
+        <button 
+          type="button"
+          class="btn btn-outline-secondary btn-lg" 
           (click)="cancelEdit()"
           [disabled]="isSaving">
-          <ion-icon name="close-outline" slot="start"></ion-icon>
+          <i class="bi bi-x-circle me-2"></i>
           Cancelar
-        </ion-button>
+        </button>
 
-        <ion-button 
-          expand="block" 
-          type="submit"
+        <!-- Botón Guardar -->
+        <button 
+          type="submit" 
+          class="btn btn-primary btn-lg"
           [disabled]="isSaving || profileForm.invalid">
-          <ion-spinner name="crescent" *ngIf="isSaving"></ion-spinner>
-          <ion-icon name="save-outline" slot="start" *ngIf="!isSaving"></ion-icon>
+          <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2"></span>
+          <i *ngIf="!isSaving" class="bi bi-check-circle me-2"></i>
           {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-        </ion-button>
+        </button>
+
       </div>
 
     </form>
 
-    <!-- Información adicional -->
-    <ion-card class="my-3" style="background: var(--ion-color-light);">
-      <ion-card-content>
+    <!-- Card: Información de seguridad -->
+    <div class="card shadow-soft" style="background-color: var(--background-light);" *ngIf="!isLoading">
+      <div class="card-body">
+        
+        <!-- Seguridad -->
         <div class="d-flex align-items-start mb-3">
-          <ion-icon name="shield-checkmark-outline" color="primary" class="me-3" style="font-size: 1.75rem;"></ion-icon>
+          <div class="flex-shrink-0 me-3">
+            <i class="bi bi-shield-check icon-primary" style="font-size: 2rem;"></i>
+          </div>
           <div>
-            <strong class="d-block mb-1">Seguridad</strong>
-            <p class="mb-0 small text-muted">Tus datos están protegidos y encriptados</p>
+            <h6 class="fw-bold text-dark mb-1">Seguridad</h6>
+            <p class="text-muted small mb-0">Tus datos están protegidos y encriptados</p>
           </div>
         </div>
+
+        <!-- Privacidad -->
         <div class="d-flex align-items-start">
-          <ion-icon name="eye-off-outline" color="primary" class="me-3" style="font-size: 1.75rem;"></ion-icon>
+          <div class="flex-shrink-0 me-3">
+            <i class="bi bi-eye-slash icon-primary" style="font-size: 2rem;"></i>
+          </div>
           <div>
-            <strong class="d-block mb-1">Privacidad</strong>
-            <p class="mb-0 small text-muted">Solo tú puedes ver y editar esta información</p>
+            <h6 class="fw-bold text-dark mb-1">Privacidad</h6>
+            <p class="text-muted small mb-0">Solo tú puedes ver y editar esta información</p>
           </div>
         </div>
-      </ion-card-content>
-    </ion-card>
+
+      </div>
+    </div>
 
   </div>
-
 </ion-content>

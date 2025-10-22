@@ -230,10 +230,10 @@ export class HomePage implements OnInit {
   }
 
   /**
-   * Muestra el perfil del usuario (funcionalidad pendiente)
+   * Navega al perfil del usuario
    */
   viewProfile() {
-    alert('Perfil será implementado próximamente');
+    this.router.navigate(['/profile']);
   }
 
   /**
