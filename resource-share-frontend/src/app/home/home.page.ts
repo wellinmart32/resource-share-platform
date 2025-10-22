@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../core/services/auth/auth-service';
 import { ResourceService } from '../core/services/resource/resource-service';
 import { User } from '../core/models/auth/user.model';
@@ -28,7 +29,7 @@ interface ReceiverData {
   standalone: true,
   imports: [CommonModule, IonicModule]
 })
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, OnDestroy {
 
   isDonor = false;
   isReceiver = false;
@@ -51,6 +52,9 @@ export class HomePage implements OnInit {
   
   recentResources: Resource[] = [];
 
+  // Suscripciones reactivas
+  private currentUserSubscription?: Subscription;
+
   constructor(
     private authService: AuthService,
     private resourceService: ResourceService,
@@ -58,7 +62,34 @@ export class HomePage implements OnInit {
   ) {}
 
   ngOnInit() {
+    console.log('🏠 [HOME] Inicializando componente');
+    this.subscribeToAuthChanges();
     this.loadUserData();
+  }
+
+  ngOnDestroy() {
+    console.log('🗑️ [HOME] Limpiando suscripciones');
+    this.currentUserSubscription?.unsubscribe();
+  }
+
+  /**
+   * Configura la suscripción reactiva para detectar cambios en el estado de autenticación
+   */
+  private subscribeToAuthChanges() {
+    this.currentUserSubscription = this.authService.currentUser$.subscribe({
+      next: (user: User | null) => {
+        console.log('🔔 [HOME] Usuario cambió:', user?.email || 'Sin usuario');
+        
+        if (user) {
+          this.updateUserData(user);
+        } else {
+          this.clearUserData();
+        }
+      },
+      error: (error) => {
+        console.error('❌ [HOME] Error en suscripción auth:', error);
+      }
+    });
   }
 
   /**
@@ -97,6 +128,17 @@ export class HomePage implements OnInit {
     this.isReceiver = false;
     this.userName = '';
     this.userEmail = '';
+    this.donorStats = {
+      totalDonations: 0,
+      activeDonations: 0,
+      completedDonations: 0,
+      claimedCount: 0
+    };
+    this.receiverData = {
+      nearbyResources: 0,
+      claimedResources: 0
+    };
+    this.recentResources = [];
   }
 
   /**
@@ -121,77 +163,64 @@ export class HomePage implements OnInit {
     this.resourceService.getMyDonorResources().subscribe({
       next: (resources: Resource[]) => {
         this.donorStats.totalDonations = resources.length;
-        this.donorStats.activeDonations = resources.filter(r => 
-          r.status === ResourceStatus.AVAILABLE || 
-          r.status === ResourceStatus.CLAIMED ||
-          r.status === ResourceStatus.IN_TRANSIT
-        ).length;
-        this.donorStats.completedDonations = resources.filter(r => 
-          r.status === ResourceStatus.DELIVERED
-        ).length;
-        this.donorStats.claimedCount = resources.filter(r =>
-          r.status === ResourceStatus.CLAIMED
-        ).length;
+        this.donorStats.activeDonations = resources.filter(r => r.status === ResourceStatus.AVAILABLE).length;
+        this.donorStats.completedDonations = resources.filter(r => r.status === ResourceStatus.DELIVERED).length;
+        this.donorStats.claimedCount = resources.filter(r => r.status === ResourceStatus.CLAIMED || r.status === ResourceStatus.IN_TRANSIT).length;
         
         this.recentResources = resources.slice(0, 3);
         this.isLoading = false;
+        
+        console.log('✅ Datos de donante cargados');
       },
-      error: (error: any) => {
-        console.error('Error cargando datos del donante:', error);
+      error: (error) => {
+        console.error('❌ Error cargando recursos del donante:', error);
         this.isLoading = false;
-        this.useMockDonorData();
       }
     });
   }
 
   /**
    * Carga los datos del receptor
-   * Obtiene recursos disponibles y recursos ya reclamados
+   * Obtiene recursos disponibles cercanos y recursos reclamados
    */
   private loadReceiverData() {
     this.resourceService.getAvailableResources().subscribe({
       next: (resources: Resource[]) => {
         this.receiverData.nearbyResources = resources.length;
-        this.recentResources = resources.slice(0, 5);
-        this.isLoading = false;
+        this.recentResources = resources.slice(0, 3);
+        this.loadClaimedResourcesCount();
+        
+        console.log('✅ Datos de receptor cargados');
       },
-      error: (error: any) => {
-        console.error('Error cargando recursos disponibles:', error);
+      error: (error) => {
+        console.error('❌ Error cargando recursos disponibles:', error);
         this.receiverData.nearbyResources = 0;
+        this.isLoading = false;
       }
     });
+  }
 
+  /**
+   * Carga el conteo de recursos reclamados por el receptor
+   */
+  private loadClaimedResourcesCount() {
     this.resourceService.getMyReceivedResources().subscribe({
       next: (resources: Resource[]) => {
-        this.receiverData.claimedResources = resources.length;
+        this.receiverData.claimedResources = resources.filter(
+          r => r.status === ResourceStatus.CLAIMED || 
+              r.status === ResourceStatus.IN_TRANSIT || 
+              r.status === ResourceStatus.DELIVERED
+        ).length;
+        this.isLoading = false;
+        
+        console.log('✅ Recursos reclamados contados');
       },
       error: (error: any) => {
-        console.error('Error cargando recursos reclamados:', error);
+        console.error('❌ Error cargando recursos reclamados:', error);
         this.receiverData.claimedResources = 0;
+        this.isLoading = false;
       }
     });
-  }
-
-  /**
-   * Datos de prueba para el donante cuando no hay conexión al backend
-   */
-  private useMockDonorData() {
-    this.donorStats = {
-      totalDonations: 5,
-      activeDonations: 2,
-      completedDonations: 3,
-      claimedCount: 1
-    };
-  }
-
-  /**
-   * Datos de prueba para el receptor cuando no hay conexión al backend
-   */
-  private useMockReceiverData() {
-    this.receiverData = {
-      nearbyResources: 12,
-      claimedResources: 3
-    };
   }
 
   /**
