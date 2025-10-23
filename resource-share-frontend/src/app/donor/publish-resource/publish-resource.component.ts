@@ -219,6 +219,8 @@ export class PublishResourceComponent implements OnInit, OnDestroy {
         console.log('✅ Recurso publicado exitosamente');
         this.isLoading = false;
         this.successMessage = 'Recurso publicado exitosamente';
+        // Reiniciar el formulario después de publicar
+        this.resourceForm.reset();
         
         setTimeout(() => {
           this.router.navigate(['/donor/my-donations'], {
